@@ -1,4 +1,4 @@
-module.exports = [
+let table = module.exports = [
   ['', 'Nullifinium'],
   ['H', 'Hydrogen'],
   ['He', 'Helium'],
@@ -119,3 +119,8 @@ module.exports = [
   ['Ts', 'Tennessine'],
   ['Og', 'Oganesson'],
 ];
+
+let inv = module.exports.inv = {};
+for (let ii = 0; ii < table.length; ++ii) {
+  inv[table[ii][0]] = ii;
+}

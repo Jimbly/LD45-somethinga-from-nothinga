@@ -3,20 +3,21 @@
 const glov_local_storage = require('./glov/local_storage.js');
 glov_local_storage.storage_prefix = 'LD43';
 
+const assert = require('assert');
 const engine = require('./glov/engine.js');
 const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
-const glov_input = require('./glov/input.js');
-const glov_particles = require('./glov/particles.js');
+//const glov_input = require('./glov/input.js');
+//const glov_particles = require('./glov/particles.js');
 const glov_sprites = require('./glov/sprites.js');
-const glov_sprite_animation = require('./glov/sprite_animation.js');
-const glov_transition = require('./glov/transition.js');
+//const glov_sprite_animation = require('./glov/sprite_animation.js');
+//const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
-const { floor } = Math;
+const { max, floor } = Math;
 
-const { vec2, vec4, v4clone, v4copy } = require('./glov/vmath.js');
+const { vec2, vec4 } = require('./glov/vmath.js');
 
 const DEBUG = 1;
 
@@ -73,7 +74,7 @@ export function main() {
     sound_manager.loadSound('test');
 
     sprites.white = createSprite({ url: 'white' });
-    sprites.pipes = createSprite({ name: 'pipes', layers: 2, ws: [128, 128, 128, 128], hs: [128] });
+    sprites.pipes = createSprite({ name: 'pipes', layers: 2, ws: [128, 128, 128, 128], hs: [256] });
 
     sprites.game_bg = createSprite({
       url: 'white',
@@ -86,7 +87,75 @@ export function main() {
   // const SPLIT = 3;
   const OUTPUT = 4;
 
-  function GameState() {
+  function stringToElems(str) {
+    let ret = [];
+    for (let ii = 0; ii < str.length; ++ii) {
+      let ch = str[ii];
+      if (ii < str.length - 1 && str[ii + 1].toLowerCase() === str[ii + 1]) {
+        ii++;
+        ch += str[ii];
+      }
+      let elem = periodic.inv[ch];
+      assert(elem);
+      ret.push(elem);
+    }
+    return ret;
+  }
+
+  let level = 1;
+  let levels = [
+    {
+      name: 'Tutorial: fusion',
+      source: 'NO',
+      goal: 'P',
+      max_score: [null, 1, null],
+    },
+    {
+      name: 'Tutorial: fission, waste',
+      hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output',
+      source: 'As', // 33
+      goal: 'HOH', // 10
+      max_score: [null, 0, null],
+    },
+    {
+      name: 'Tutorial: fission, parity',
+      hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row',
+      source: 'Li', // 3
+      goal: 'HeH', // 3
+      max_score: [null,0,1],
+    },
+    { // easy, but exact
+      name: 'Japanese',
+      source: 'MoO', // 50
+      goal: 'NaY', // 50
+    },
+    {
+      name: 'WTFBBQ',
+      source: 'WThF', // 173
+      goal: 'BaBaCu', // 141
+    },
+    {
+      name: 'German',
+      source: 'NiCHTs', // 152
+      goal: 'NIXe', // 114
+      // goal: 'HOH', // 10
+    },
+    {
+      name: 'SOMtHINGa from NoThINGa',
+      source: 'NoThINGa', // 283
+      goal: 'SOMtHINGa', // 225
+    }
+  ];
+  for (let ii = 0; ii < levels.length; ++ii) {
+    let source = 0;
+    stringToElems(levels[ii].source).filter((a) => (source += a));
+    let goal = 0;
+    stringToElems(levels[ii].goal).filter((a) => (goal += a));
+    console.log(levels[ii].source, source, levels[ii].goal, goal);
+    assert(source >= goal);
+  }
+
+  function GameState(level_def) {
     this.w = 12;
     this.h = 16;
     this.board = new Array(this.h);
@@ -96,11 +165,11 @@ export function main() {
         this.board[ii][jj] = { v: 0, state: 0, pos: [ii, jj] };
       }
     }
-    this.board[0][1].v = 102;
-    this.board[0][3].v = 90;
-    this.board[0][5].v = 53;
-    this.board[0][7].v = 7;
-    this.board[0][9].v = 31;
+    let source_elem = stringToElems(level_def.source);
+    let base = max(1, 4 - source_elem.length);
+    for (let ii = 0; ii < source_elem.length; ++ii) {
+      this.board[0][base + ii * 2].v = source_elem[ii];
+    }
     this.edges = new Array(this.h - 1);
     for (let ii = 0; ii < this.edges.length; ++ii) {
       this.edges[ii] = new Array(this.w * 2 - 1);
@@ -108,14 +177,14 @@ export function main() {
         this.edges[ii][jj] = 0;
       }
     }
-    this.goal = [16, 8, 109, 1, 53, 7, 31];
+    this.goal = stringToElems(level_def.goal);
 
     if (DEBUG) {
-      this.edges[0][11] =
-      this.edges[0][14] =
-      this.edges[0][15] =
-      this.edges[1][12] =
-      this.edges[1][15] = 1;
+      // this.edges[0][11] =
+      // this.edges[0][14] =
+      // this.edges[0][15] =
+      // this.edges[1][12] =
+      // this.edges[1][15] = 1;
     }
   }
 
@@ -230,7 +299,7 @@ export function main() {
 
   let state;
   function reset() {
-    state = new GameState();
+    state = new GameState(levels[level]);
     state.update();
   }
   reset();
@@ -245,10 +314,10 @@ export function main() {
   let color_output = vec4(1,1,1, 1);
   let style_dead_end = glov_font.styleColored(null, 0xFFFFFFff);
   let color_dead_end = vec4(1,1,1, 1);
-
-  let side_visible = true;
+  let colors_good = ui.makeColorSet(color_goal_good);
 
   function test(dt) {
+    const side_visible = !engine.defines.SHIDE;
     if (side_visible) {
       game_width = GAME_WIDTH_SIDE;
       engine.setGameDims(game_width, game_height);
@@ -261,7 +330,7 @@ export function main() {
     const HSPACE = (BOARD_W - 24) / state.w;
     const CELL_H = ui.font_height;
     const EDGE_H = ui.font_height;
-    const BUTTON_W = (HSPACE - 4) / 2;
+    // const BUTTON_W = (HSPACE - 4) / 2;
     const BUTTON_IMG_W = HSPACE / 2;
     const RECT_BORDER = 2;
     const RECT_HW = HSPACE * 0.5;
@@ -346,7 +415,7 @@ export function main() {
             // if (ui.buttonText({
             //   x: x - BUTTON_W / 2, y, z, w: BUTTON_W, h: EDGE_H, text
             if (ui.buttonImage({
-              x: x - BUTTON_IMG_W / 2, y, z, w: BUTTON_IMG_W, h: EDGE_H,
+              x: x - BUTTON_IMG_W / 2, y: y - EDGE_H, z: Z.UI - 5, w: BUTTON_IMG_W, h: EDGE_H * 2,
               img: sprites.pipes,
               shrink: 1,
               frame: erow[jj] ? right ? 2 : 3 : right ? 0 : 1,
@@ -410,9 +479,9 @@ export function main() {
     if (ui.buttonText({
       x: game_width - ui.button_height - 10, y: 10 ,
       w: ui.button_height,
-      text: side_visible ? '>>' : '<<',
+      text: engine.defines.SHIDE ? '«' : '»',
     })) {
-      side_visible = !side_visible;
+      engine.defines.SHIDE = !engine.defines.SHIDE;
     }
 
     x0 = BOARD_W + (side_visible ? 10 : 5);
@@ -424,6 +493,24 @@ export function main() {
     let score_style = glov_font.style(null, {
       color: 0x000000ff,
     });
+    let hint_style = glov_font.style(null, {
+      color: 0x202020ff,
+    });
+
+    font.drawSizedAligned(score_style, x, y, z, ui.font_height,
+      side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
+      game_width - x - 5, 0,
+      `${side_visible ? 'Level ' : ''}${level+1}/${levels.length}`);
+    y += ui.font_height;
+    if (side_visible) {
+      font.drawSizedAligned(score_style, x, y, z, ui.font_height,
+        side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
+        game_width - x - 5, 0,
+        levels[level].name);
+      y += ui.font_height;
+    }
+    y += ui.font_height * 0.5;
+
     font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 5, 0,
       side_visible ? 'SCORE' : 'Score');
     y += ui.font_height;
@@ -448,19 +535,65 @@ export function main() {
 
     if (side_visible) {
       let button_w = 150;
-      if (ui.buttonText({ x, y, w: button_w, text: 'Next Level', disabled: !complete })) {
+      if (ui.buttonText({
+        x, y, w: button_w, text: level === levels.length - 1 ? 'No more levels' :complete ? 'Next Level' : 'Skip Level',
+        disabled: level === levels.length - 1,
+        colors: complete ? colors_good : null,
+      })) {
+        ++level;
         reset();
       }
       x += button_w + 8;
       if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
         reset();
       }
+      y += ui.button_height + 8;
+      x = x0;
+      if (level > 0) {
+        if (ui.buttonText({
+          x, y, w: button_w, text: 'Previous Level',
+        })) {
+          --level;
+          reset();
+        }
+      }
+      y += ui.button_height + 8;
+
+      x = x0;
+      y += ui.font_height * 0.5;
+
+      if (levels[level].hint) {
+        y += font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
+          20, ui.font_height * 0.75, levels[level].hint);
+      }
+
     } else {
       if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
-        text: '->', disabled: !complete })
+        text: '->', disabled: level === levels.length - 1 })
       ) {
+        ++level;
         reset();
       }
+      y += ui.button_height + 8;
+      if (level > 0) {
+        if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
+          text: '<-' })
+        ) {
+          --level;
+          reset();
+        }
+      }
+      y += ui.button_height + 8;
+      if (levels[level].hint && ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        text: '!' })
+      ) {
+        ui.modalDialog({
+          title: 'HINT',
+          text: levels[level].hint,
+          buttons: { Ok: null },
+        });
+      }
+      y += ui.button_height + 8;
     }
   }
 
