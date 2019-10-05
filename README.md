@@ -1,14 +1,13 @@
 Ludum Dare 45 - Start With Nothing
 ============================
 
-LD45 Entry by Jimbly - "Somethinga from Nothinga"
+LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 
 * Using [Javascript libGlov/GLOV.js framework](https://github.com/Jimbly/glovjs)
 
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  Enforce max score
   Show full element information on right on rollover
   High scores
   Display notification upon completion of level

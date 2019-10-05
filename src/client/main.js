@@ -15,7 +15,7 @@ const glov_sprites = require('./glov/sprites.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
-const { max, floor } = Math;
+const { abs, floor, max, sin } = Math;
 
 const { vec2, vec4 } = require('./glov/vmath.js');
 
@@ -141,7 +141,6 @@ export function main() {
       hint: 'Hint: You cannot invent new elements, that might be dangerous',
       source: 'WPd', // 120
       goal: 'NdNd', // 120
-      max_score: [null,0,1],
     },
     { // my score 5/6/8
       name: 'Latvian',
@@ -558,6 +557,12 @@ export function main() {
     let score_style = glov_font.style(null, {
       color: 0x000000ff,
     });
+    let score_style_bad = glov_font.styleAlpha(glov_font.style(null, {
+      color: 0xFF0000ff,
+    }), abs(sin(engine.global_timer * 0.01)));
+    let score_style_bad_static = glov_font.style(null, {
+      color: 0x800000ff,
+    });
     let hint_style = glov_font.style(null, {
       color: 0x202020ff,
     });
@@ -567,11 +572,12 @@ export function main() {
       game_width - x - 5, 0,
       `${side_visible ? 'Level ' : ''}${level+1}/${levels.length}`);
     y += ui.font_height;
+    let level_data = levels[level];
     if (side_visible) {
       font.drawSizedAligned(score_style, x, y, z, ui.font_height,
         side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
         game_width - x - 5, 0,
-        levels[level].name);
+        level_data.name);
       y += ui.font_height;
     }
     y += ui.font_height * 0.5;
@@ -583,17 +589,42 @@ export function main() {
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
       `H${side_visible ? 'eight' : ''}: ${state.active_height}`);
     y += ui.font_height * 0.75;
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
-      `Fu${side_visible ? 'sers' : ''}: ${state.num_join}`);
+    let maxfu = level_data.max_score && level_data.max_score[1] !== null;
+    let over_limits = false;
+    let fu_style = score_style;
+    if (maxfu && state.num_join > level_data.max_score[1]) {
+      over_limits = true;
+      complete = false;
+      fu_style = score_style_bad;
+    }
+    font.drawSizedAligned(fu_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+      `Fu${side_visible ? 'sers' : ''}: ${state.num_join}${maxfu ?
+        side_visible ? ` (max ${level_data.max_score[1]})` : `/${level_data.max_score[1]}` :
+        ''}`);
     y += ui.font_height * 0.75;
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
-      `Fi${side_visible ? 'ssurers' : ''}: ${state.num_split}`);
+    let maxfi = level_data.max_score && level_data.max_score[2] !== null;
+    let fi_style = score_style;
+    if (maxfi && state.num_join > level_data.max_score[2]) {
+      over_limits = true;
+      complete = false;
+      fi_style = score_style_bad;
+    }
+    font.drawSizedAligned(fi_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+      `Fi${side_visible ? 'ssurers' : ''}: ${state.num_split}${maxfi ?
+        side_visible ? ` (max ${level_data.max_score[2]})` : `/${level_data.max_score[2]}` :
+        ''}`);
     y += ui.font_height * 0.75;
     x = x0;
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HLEFT, 0, 0,
+    let total_style = score_style;
+    if (over_limits) {
+      total_style = score_style_bad;
+    } else if (!complete) {
+      total_style = score_style_bad_static;
+    }
+    font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
       `${side_visible ? 'Total: ' : ''}${complete ?
         `${state.active_height}/${state.num_join}/${state.num_split}` :
-        side_visible ? 'Goal not met' : 'Inc'}`);
+        side_visible ? over_limits ? 'Over limits' : 'Goal not met' : over_limits ? 'Limt' : 'Inc'}`);
     y += ui.font_height;
 
     y += ui.font_height * 0.5;
@@ -627,9 +658,9 @@ export function main() {
       x = x0;
       y += ui.font_height * 0.5;
 
-      if (levels[level].hint) {
+      if (level_data.hint) {
         y += font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
-          20, ui.font_height * 0.75, levels[level].hint);
+          20, ui.font_height * 0.75, level_data.hint);
       }
 
     } else {
@@ -649,12 +680,12 @@ export function main() {
         }
       }
       y += ui.button_height + 8;
-      if (levels[level].hint && ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
+      if (level_data.hint && ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
         text: '!' })
       ) {
         ui.modalDialog({
           title: 'HINT',
-          text: levels[level].hint,
+          text: level_data.hint,
           buttons: { Ok: null },
         });
       }
