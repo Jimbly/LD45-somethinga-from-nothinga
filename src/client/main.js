@@ -7,7 +7,7 @@ const assert = require('assert');
 const engine = require('./glov/engine.js');
 const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
-//const glov_input = require('./glov/input.js');
+const input = require('./glov/input.js');
 //const glov_particles = require('./glov/particles.js');
 const glov_sprites = require('./glov/sprites.js');
 //const glov_sprite_animation = require('./glov/sprite_animation.js');
@@ -102,7 +102,7 @@ export function main() {
     return ret;
   }
 
-  let level = 0;
+  let level = 12;
   let levels = [
     {
       name: 'Tutorial 1/4: fusion',
@@ -399,6 +399,7 @@ export function main() {
     let x;
     let y = 10;
     let z = Z.UI;
+    let selected_elem = 0;
     function print(text, style) {
       font.drawSizedAligned(style, x, y, z, ui.font_height, glov_font.ALIGN.HCENTER, 0, 0, String(text));
     }
@@ -411,6 +412,15 @@ export function main() {
         x + RECT_HW - RECT_BORDER, y + CELL_H * 2 - RECT_BORDER, z - 1, color_black);
       font.drawSizedAligned(style, x - RECT_HW + RECT_BORDER, y + CELL_H * 1.25, z, ui.font_height * 0.75,
         glov_font.ALIGN.HRIGHT, RECT_HW * 2 - RECT_BORDER * 2, 0, `${v}`);
+      if (input.mouseOver({
+        x: x - RECT_HW,
+        y,
+        w: HSPACE,
+        h: CELL_H * 2,
+        peek: true,
+      })) {
+        selected_elem = v;
+      }
     }
     elementFull.height = CELL_H * 2;
     const SMALL_HW = HSPACE * 0.45;
@@ -494,6 +504,9 @@ export function main() {
             })) {
               erow[jj] = 1 - erow[jj];
               state.update();
+            }
+            if (ui.button_mouseover) {
+              selected_elem = parent_v;
             }
           }
           // x += (HSPACE - 4) / 2;
@@ -661,6 +674,27 @@ export function main() {
       if (level_data.hint) {
         y += font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
           20, ui.font_height * 0.75, level_data.hint);
+      }
+
+      if (selected_elem) {
+        const BIG_W = 300;
+        const PAD = (game_width - BOARD_W - BIG_W) / 2;
+        let BIG_H = BIG_W * 1.20;
+        let BIG_BORDER = 8;
+        x = game_width - BIG_W - PAD;
+        y = game_height - BIG_H - PAD;
+
+        font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9,
+          glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
+          periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
+        font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2,
+          glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
+          periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
+        ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
+        ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
+          x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, color_white);
+        font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5,
+          glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
       }
 
     } else {

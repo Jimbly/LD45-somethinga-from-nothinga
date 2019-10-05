@@ -8,7 +8,6 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  Show full element information on right on rollover
   High scores
   Display notification upon completion of level
   Title screen
@@ -26,3 +25,4 @@ TODO:
   Music: atmospheric
   Atmospheric sounds:
     burble, machine noises?
+  Funny quotes for each element?
