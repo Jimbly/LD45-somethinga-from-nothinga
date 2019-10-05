@@ -580,14 +580,16 @@ export function buttonImage(param) {
   let { ret, state } = buttonShared(param);
   let colors = param.colors || color_button;
   let color = button_last_color = colors[state];
-  let base_name = param.base_name || 'button';
-  let sprite_name = `${base_name}_${state}`;
-  let sprite = sprites[sprite_name];
-  if (!sprite) {
-    sprite = sprites[base_name];
-  }
+  if (!param.no_bg) {
+    let base_name = param.base_name || 'button';
+    let sprite_name = `${base_name}_${state}`;
+    let sprite = sprites[sprite_name];
+    if (!sprite) {
+      sprite = sprites[base_name];
+    }
 
-  drawHBox(param, sprite, color);
+    drawHBox(param, sprite, color);
+  }
   let img_w = param.img.size[0];
   let img_h = param.img.size[1];
   let img_origin = param.img.origin;

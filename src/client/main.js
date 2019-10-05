@@ -4,6 +4,7 @@ const glov_local_storage = require('./glov/local_storage.js');
 glov_local_storage.storage_prefix = 'LD43';
 
 const engine = require('./glov/engine.js');
+const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
 const glov_input = require('./glov/input.js');
 const glov_particles = require('./glov/particles.js');
@@ -23,9 +24,11 @@ Z.BACKGROUND = 0;
 Z.SPRITES = 10;
 Z.PARTICLES = 20;
 
+const GAME_WIDTH_SIDE = 1000;
+const GAME_WIDTH_CLOSED = 652;
 // let app = exports;
 // Virtual viewport for our game logic
-export const game_width = 1000;
+export let game_width = GAME_WIDTH_SIDE;
 const BOARD_W = 600;
 export const game_height = 900;
 
@@ -44,6 +47,13 @@ export function main() {
     viewport_postprocess: false,
     sound_manager: require('./glov/sound_manager.js').create(),
     show_fps: false,
+    antialias: false,
+    ui_sprites: {
+      button: ['ui.local/button', [2,60,2], [64]],
+      button_rollover: ['ui.local/button_rollover', [2,60,2], [64]],
+      button_down: ['ui.local/button_down', [2,60,2], [64]],
+      button_disabled: ['ui.local/button_disabled', [2,60,2], [64]],
+    },
   })) {
     return;
   }
@@ -64,6 +74,7 @@ export function main() {
     sound_manager.loadSound('test');
 
     sprites.white = createSprite({ url: 'white' });
+    sprites.pipes = createSprite({ name: 'pipes', layers: 2, ws: [128, 128, 128, 128], hs: [128] });
 
     sprites.game_bg = createSprite({
       url: 'white',
@@ -230,11 +241,23 @@ export function main() {
   let style_dead_end = glov_font.styleColored(null, 0x808080ff);
   let color_dead_end = vec4(0.5, 0.5, 0.5, 1);
 
+  let side_visible = true;
+
   function test(dt) {
+    if (side_visible) {
+      game_width = GAME_WIDTH_SIDE;
+      engine.setGameDims(game_width, game_height);
+      camera2d.setAspectFixed(game_width, game_height);
+    } else {
+      game_width = GAME_WIDTH_CLOSED;
+      engine.setGameDims(game_width, game_height);
+      camera2d.setAspectFixed(game_width, game_height);
+    }
     const HSPACE = (BOARD_W - 24) / state.w;
     const CELL_H = ui.font_height;
     const EDGE_H = ui.font_height;
     const BUTTON_W = (HSPACE - 4) / 2;
+    const BUTTON_IMG_W = HSPACE / 2;
     const RECT_BORDER = 2;
     const RECT_HW = HSPACE * 0.5;
     let x0 = RECT_HW;
@@ -313,19 +336,33 @@ export function main() {
         for (let jj = 0; jj < erow.length; ++jj) {
           let parent = (ii & 1) ? floor((jj + 1) / 2) : floor(jj / 2);
           if (state.board[ii][parent] && state.board[ii][parent].v) {
-            let text = erow[jj] ? (jj + ii) & 1 ? '\\' : '/' : '-';
-            if (ui.buttonText({
-              x: x - BUTTON_W / 2, y, z, w: BUTTON_W, h: EDGE_H, text
+            let right = Boolean((jj + ii) & 1);
+            // let text = erow[jj] ? right ? '\\' : '/' : '-';
+            // if (ui.buttonText({
+            //   x: x - BUTTON_W / 2, y, z, w: BUTTON_W, h: EDGE_H, text
+            if (ui.buttonImage({
+              x: x - BUTTON_IMG_W / 2, y, z, w: BUTTON_IMG_W, h: EDGE_H,
+              img: sprites.pipes,
+              shrink: 1,
+              frame: erow[jj] ? right ? 2 : 3 : right ? 0 : 1,
+              colors: {
+                down: [0,0,0,1],
+                rollover: [1,1,1,1],
+                regular: [0.2,0.2,0.2,1],
+              },
+              color: [0.7, 0.5, 1.0, 1],
+              color1: [1,1,1,1],
+              // no_bg: true,
             })) {
               erow[jj] = 1 - erow[jj];
               state.update();
             }
           }
-          //print(text);
-          x += (HSPACE - 4) / 2;
-          if ((jj + ii) & 1) {
-            x += 4;
-          }
+          // x += (HSPACE - 4) / 2;
+          // if ((jj + ii) & 1) {
+          //   x += 4;
+          // }
+          x += BUTTON_IMG_W;
         }
         y += EDGE_H;
       }
@@ -365,8 +402,16 @@ export function main() {
       color: [0.9, 0.9, 0.9, 1]
     });
 
-    x0 = BOARD_W + 10;
-    y += 10;
+    if (ui.buttonText({
+      x: game_width - ui.button_height - 10, y: 10 ,
+      w: ui.button_height,
+      text: side_visible ? '>>' : '<<',
+    })) {
+      side_visible = !side_visible;
+    }
+
+    x0 = BOARD_W + (side_visible ? 10 : 5);
+    y += side_visible ? 10 : 20;
     x = x0;
 
     y += ui.button_height;
@@ -374,32 +419,43 @@ export function main() {
     let score_style = glov_font.style(null, {
       color: 0x000000ff,
     });
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HLEFT, 0, 0, 'Score:');
+    font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 5, 0,
+      side_visible ? 'SCORE' : 'Score');
     y += ui.font_height;
-    x = x0 + 20;
+    x = x0 + (side_visible ? 20 : 2);
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
-      `Height: ${state.active_height}`);
+      `H${side_visible ? 'eight' : ''}: ${state.active_height}`);
     y += ui.font_height * 0.75;
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
-      `Fusers: ${state.num_join}`);
+      `Fu${side_visible ? 'sers' : ''}: ${state.num_join}`);
     y += ui.font_height * 0.75;
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
-      `Fissurers: ${state.num_split}`);
+      `Fi${side_visible ? 'ssurers' : ''}: ${state.num_split}`);
     y += ui.font_height * 0.75;
     x = x0;
     font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HLEFT, 0, 0,
-      `Total: ${complete ? `${state.active_height}/${state.num_join}/${state.num_split}` : 'Goal not met'}`);
+      `${side_visible ? 'Total: ' : ''}${complete ?
+        `${state.active_height}/${state.num_join}/${state.num_split}` :
+        side_visible ? 'Goal not met' : 'Inc'}`);
     y += ui.font_height;
 
     y += ui.font_height * 0.5;
 
-    let button_w = 150;
-    if (ui.buttonText({ x, y, w: button_w, text: 'Next Level', disabled: !complete })) {
-      reset();
-    }
-    x += button_w + 8;
-    if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
-      reset();
+    if (side_visible) {
+      let button_w = 150;
+      if (ui.buttonText({ x, y, w: button_w, text: 'Next Level', disabled: !complete })) {
+        reset();
+      }
+      x += button_w + 8;
+      if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
+        reset();
+      }
+    } else {
+      if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        text: '->', disabled: !complete })
+      ) {
+        reset();
+      }
     }
   }
 
