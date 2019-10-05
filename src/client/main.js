@@ -12,6 +12,7 @@ const glov_sprites = require('./glov/sprites.js');
 const glov_sprite_animation = require('./glov/sprite_animation.js');
 const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
+const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
 const { floor } = Math;
 
@@ -36,8 +37,6 @@ export let sprites = {};
 
 const color_white = vec4(1, 1, 1, 1);
 const color_black = vec4(0, 0, 0, 1);
-const color_green = vec4(0, 1, 0, 1);
-const color_red = vec4(1, 0, 0, 1);
 
 export function main() {
   if (!engine.startup({
@@ -236,10 +235,16 @@ export function main() {
   }
   reset();
 
-  let style_goal_good = glov_font.styleColored(null, 0x00FF00ff);
-  let style_goal_bad = glov_font.styleColored(null, 0xFF0000ff);
-  let style_dead_end = glov_font.styleColored(null, 0x808080ff);
-  let color_dead_end = vec4(0.5, 0.5, 0.5, 1);
+  let style_goal_good = glov_font.styleColored(null, pico8.font_colors[11]);
+  let color_goal_good = pico8.colors[11];
+  let style_goal_bad = glov_font.styleColored(null, pico8.font_colors[8]);
+  let color_goal_bad = pico8.colors[8];
+  let style_intermediate = glov_font.styleColored(null, pico8.font_colors[5]);
+  let color_intermediate = pico8.colors[5];
+  let style_output = glov_font.styleColored(null, 0xFFFFFFff);
+  let color_output = vec4(1,1,1, 1);
+  let style_dead_end = glov_font.styleColored(null, 0xFFFFFFff);
+  let color_dead_end = vec4(1,1,1, 1);
 
   let side_visible = true;
 
@@ -319,12 +324,12 @@ export function main() {
           } else if (row[jj].state === OUTPUT) {
             let solution = state.goal_state.filter((a) => a === row[jj]).length > 0;
             if (solution) {
-              mode(v, style_goal_good, color_green);
+              mode(v, style_goal_good, color_goal_good);
             } else {
-              mode(v);
+              mode(v, style_output, color_output);
             }
           } else {
-            mode(v);
+            mode(v, style_intermediate, color_intermediate);
           }
         }
         x += HSPACE;
@@ -350,7 +355,7 @@ export function main() {
                 rollover: [1,1,1,1],
                 regular: [0.2,0.2,0.2,1],
               },
-              color: [0.7, 0.5, 1.0, 1],
+              color: pico8.colors[12],
               color1: [1,1,1,1],
               // no_bg: true,
             })) {
@@ -380,7 +385,7 @@ export function main() {
       if (!gs) {
         complete = false;
       }
-      let color = gs ? color_green : color_red;
+      let color = gs ? color_goal_good : color_goal_bad;
       let style = gs ? style_goal_good : style_goal_bad;
       elementFull(v, style, color);
       x += HSPACE + 10;
