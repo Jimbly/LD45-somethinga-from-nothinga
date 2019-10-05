@@ -102,48 +102,106 @@ export function main() {
     return ret;
   }
 
-  let level = 1;
+  let level = 0;
   let levels = [
     {
-      name: 'Tutorial: fusion',
+      name: 'Tutorial 1/4: fusion',
       source: 'NO',
       goal: 'P',
       max_score: [null, 1, null],
     },
     {
-      name: 'Tutorial: fission, waste',
+      name: 'Tutorial 2/4: fission, waste',
       hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output',
       source: 'As', // 33
-      goal: 'HOH', // 10
+      goal: 'HHO', // 10
       max_score: [null, 0, null],
     },
+    { // easy, but exact
+      name: 'Japanese',
+      hint: '"Mu" (Japanese) (noun): nothing; nothingness',
+      source: 'MoO', // 50
+      goal: 'NaY', // 50
+    },
+    { // my score: 6/3/7; easy
+      name: 'Chinese',
+      hint: '"Mò" (Chinese) (noun): nothing; no one',
+      source: 'Mo', // 42
+      goal: 'SiNO', // 29
+    },
     {
-      name: 'Tutorial: fission, parity',
+      name: 'Tutorial 3/4: fission, parity',
       hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row',
       source: 'Li', // 3
       goal: 'HeH', // 3
       max_score: [null,0,1],
     },
-    { // easy, but exact
-      name: 'Japanese',
-      source: 'MoO', // 50
-      goal: 'NaY', // 50
+    { // my score: 6/6/6
+      name: 'Tutorial 4/4: "reality"',
+      hint: 'Hint: You cannot invent new elements, that might be dangerous',
+      source: 'WPd', // 120
+      goal: 'NdNd', // 120
+      max_score: [null,0,1],
     },
-    {
+    { // my score 5/6/8
+      name: 'Latvian',
+      hint: '"Neko" (Latvian) (noun): nothing',
+      source: 'NeKO',
+      goal: 'LiONS',
+    },
+    { // my score: 7/7/11; medium
+      name: 'Catalan',
+      hint: '"Res" (Catalan) (adverb): nothing',
+      source: 'ReS', // 91
+      goal: 'ArTiSTiC', // 84
+    },
+    { // 10/12/16 medium-low
+      name: 'Irish',
+      hint: '"Neamhní" (Irish) (noun): nothing',
+      source: 'NeAmHNI', // 166
+      goal: 'IrISH', // 147
+    },
+    { // my score: 8/7/10; low-medium
       name: 'WTFBBQ',
       source: 'WThF', // 173
       goal: 'BaBaCu', // 141
     },
-    {
+    { // my score: 10/9/15; medium
       name: 'German',
+      hint: '"Nichts" (German) (noun): a quantity of no importance; nothing',
       source: 'NiCHTs', // 152
       goal: 'NIXe', // 114
       // goal: 'HOH', // 10
     },
+    { // my score: 11/12/18; trickyish
+      name: 'Esperanto',
+      hint: '"Nenio" (Esperanto) (noun): nothing',
+      source: 'NeNIO', // 78
+      goal: 'AlCoHOLiCS', // 74
+    },
+    // {
+    //   name: 'It\s the thought that counts',
+    //   source: 'LuDbUMdArRe',
+    //   goal: 'GaMdEuV',
+    // },
     {
       name: 'SOMtHINGa from NoThINGa',
+      hint: '"Nothing" (noun): something that does not exist',
       source: 'NoThINGa', // 283
       goal: 'SOMtHINGa', // 225
+    },
+    // Probably not possible at our limited width/height
+    // {
+    //   name: 'Worst Case Scenario',
+    //   hint: 'Hint: 513 - 456 = 57',
+    //   source: 'SUPErFlUOUS', // 513
+    //   goal: 'CaPrICIOUSnEsS', // 456
+    // },
+    {
+      name: 'The End',
+      hint: 'Thanks for playing!',
+      source: 'NoThInGe',
+      goal: 'FIN',
     }
   ];
   for (let ii = 0; ii < levels.length; ++ii) {
@@ -167,8 +225,9 @@ export function main() {
     }
     let source_elem = stringToElems(level_def.source);
     let base = max(1, 4 - source_elem.length);
+    let mult = base + (source_elem.length - 1) * 2 >= this.w ? 1 : 2;
     for (let ii = 0; ii < source_elem.length; ++ii) {
-      this.board[0][base + ii * 2].v = source_elem[ii];
+      this.board[0][base + ii * mult].v = source_elem[ii];
     }
     this.edges = new Array(this.h - 1);
     for (let ii = 0; ii < this.edges.length; ++ii) {
@@ -214,7 +273,7 @@ export function main() {
       let edges = this.edges[ii];
       for (let jj = 0; jj < row.length; ++jj) {
         let v = row[jj].v;
-        if (!v) {
+        if (!v || v >= periodic.length) {
           continue;
         }
         let p1 = jj;
@@ -314,6 +373,9 @@ export function main() {
   let color_output = vec4(1,1,1, 1);
   let style_dead_end = glov_font.styleColored(null, 0xFFFFFFff);
   let color_dead_end = vec4(1,1,1, 1);
+  let style_max = glov_font.styleColored(null, pico8.font_colors[9]);
+  let color_max = pico8.colors[9];
+
   let colors_good = ui.makeColorSet(color_goal_good);
 
   function test(dt) {
@@ -344,7 +406,7 @@ export function main() {
     print.height = CELL_H;
     function elementFull(v, style, color) {
       font.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
-        glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '??');
+        glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '!!!!');
       ui.drawRect(x - RECT_HW, y, x + RECT_HW, y + CELL_H * 2, z - 2, color || color_white);
       ui.drawRect(x - RECT_HW + RECT_BORDER, y + RECT_BORDER,
         x + RECT_HW - RECT_BORDER, y + CELL_H * 2 - RECT_BORDER, z - 1, color_black);
@@ -361,7 +423,7 @@ export function main() {
       });
       font.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
         glov_font.ALIGN.HCENTER,
-        SMALL_HW * 2 - RECT_BORDER * 2, 0, `${periodic[v] ? periodic[v][0] : '??'}`);
+        SMALL_HW * 2 - RECT_BORDER * 2, 0, `${periodic[v] ? periodic[v][0] : '!!!!'}`);
       ui.drawRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, color || color_white);
       ui.drawRect(x - SMALL_HW + RECT_BORDER, y + RECT_BORDER,
         x + SMALL_HW - RECT_BORDER, y + CELL_H - RECT_BORDER, z - 1, color_black);
@@ -388,7 +450,9 @@ export function main() {
       for (let jj = 0; jj < row.length; ++jj) {
         let v = row[jj].v;
         if (v) {
-          if (!row[jj].state) {
+          if (v >= periodic.length) {
+            mode(v, style_max, color_max);
+          } else if (!row[jj].state) {
             mode(v, style_dead_end, color_dead_end);
           } else if (row[jj].state === OUTPUT) {
             let solution = state.goal_state.filter((a) => a === row[jj]).length > 0;
@@ -409,7 +473,8 @@ export function main() {
         x = x0 + HSPACE / 4;
         for (let jj = 0; jj < erow.length; ++jj) {
           let parent = (ii & 1) ? floor((jj + 1) / 2) : floor(jj / 2);
-          if (state.board[ii][parent] && state.board[ii][parent].v) {
+          let parent_v = state.board[ii][parent] && state.board[ii][parent].v;
+          if (parent_v && parent_v < periodic.length) {
             let right = Boolean((jj + ii) & 1);
             // let text = erow[jj] ? right ? '\\' : '/' : '-';
             // if (ui.buttonText({
