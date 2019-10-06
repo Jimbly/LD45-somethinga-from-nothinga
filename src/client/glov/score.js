@@ -110,8 +110,8 @@ export function updateHighScores(changed_cb) {
   if (now - score_update_time > 5*60*1000 || need_update) {
     need_update = false;
     score_update_time = now;
-    for (let key in level_defs) {
-      refreshScores(level_defs[key].name, changed_cb);
+    for (let level_idx in level_defs) {
+      refreshScores(level_defs[level_idx].name, changed_cb);
     }
   } else {
     if (changed_cb) {
@@ -136,8 +136,8 @@ function saveScore(ld, obj, cb) {
   });
 }
 
-export function getScore(level) {
-  let ld = level_defs[level];
+export function getScore(level_idx) {
+  let ld = level_defs[level_idx];
   let key = `${LS_KEY}.score_${ld.name}`;
   if (localStorage && localStorage[key]) {
     let ret = JSON.parse(localStorage[key]);
@@ -153,8 +153,8 @@ export function getScore(level) {
   return null;
 }
 
-export function setScore(level, score, cb) {
-  let ld = level_defs[level];
+export function setScore(level_idx, score, cb) {
+  let ld = level_defs[level_idx];
   let encoded = encodeScore(score) || 0;
   let encoded_local = ld.local_score && encodeScore(ld.local_score) || 0;
   if (encoded > encoded_local) {
@@ -181,7 +181,7 @@ export function updatePlayerName(new_player_name) {
       }
     }
   }
-  for (let key in level_defs) {
-    update(level_defs[key]);
+  for (let level_idx in level_defs) {
+    update(level_defs[level_idx]);
   }
 }

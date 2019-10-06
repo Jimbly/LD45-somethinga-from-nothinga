@@ -48,7 +48,7 @@ export function main() {
     viewport_postprocess: false,
     sound_manager: require('./glov/sound_manager.js').create(),
     show_fps: false,
-    antialias: false,
+    antialias: true,
     ui_sprites: {
       button: ['ui.local/button', [2,60,2], [64]],
       button_rollover: ['ui.local/button_rollover', [2,60,2], [64]],
@@ -272,7 +272,7 @@ export function main() {
     for (let ii = 0; ii < this.edges.length; ++ii) {
       this.edges[ii] = new Array(this.w * 2 - 1);
       for (let jj = 0; jj < this.edges[ii].length; ++jj) {
-        this.edges[ii][jj] = 1;
+        this.edges[ii][jj] = 0;
       }
     }
     this.goal = stringToElems(level_def.goal);
@@ -399,10 +399,10 @@ export function main() {
   function reset() {
     state = new GameState(levels[level]);
     state.update();
-    score_system.getScore(level);
-    have_scores = false;
   }
   reset();
+  have_scores = false;
+  score_system.updateHighScores(() => (have_scores = true));
 
   let style_goal_good = glov_font.styleColored(null, pico8.font_colors[11]);
   let color_goal_good = pico8.colors[11];
@@ -418,6 +418,90 @@ export function main() {
   let color_max = pico8.colors[9];
 
   let colors_good = ui.makeColorSet(color_goal_good);
+  let score_style = glov_font.styleColored(null, 0x000000ff);
+  let score_header_style = glov_font.styleColored(null, 0x333333ff);
+  let score_style_def = glov_font.styleColored(null, 0x171717ff);
+
+  let scores_edit_box;
+  function showHighScores(x, y) {
+    let z = Z.UI + 10;
+    let size = 16;
+    let width = game_width - x - 5;
+    font.drawSizedAligned(score_style, x, y, z, size * 2, glov_font.ALIGN.HCENTERFIT, width, 0,
+      `High Scores (Level ${level+1})`);
+    y += size * 2 + 2;
+    let scores = score_system.high_scores[levels[level].name];
+    assert(scores);
+    let widths = [8, 40, 15, 24, 20];
+    let widths_total = 0;
+    for (let ii = 0; ii < widths.length; ++ii) {
+      widths_total += widths[ii];
+    }
+    let set_pad = size / 2;
+    for (let ii = 0; ii < widths.length; ++ii) {
+      widths[ii] *= (width - set_pad * (widths.length - 1)) / widths_total;
+    }
+    let align = [
+      glov_font.ALIGN.HFIT | glov_font.ALIGN.HRIGHT,
+      glov_font.ALIGN.HFIT,
+      glov_font.ALIGN.HFIT | glov_font.ALIGN.HCENTER,
+      glov_font.ALIGN.HFIT | glov_font.ALIGN.HCENTER,
+      glov_font.ALIGN.HFIT | glov_font.ALIGN.HCENTER,
+    ];
+    function drawSet(arr, style) {
+      let xx = x;
+      for (let ii = 0; ii < arr.length; ++ii) {
+        font.drawSizedAligned(style, xx, y, z, size, align[ii], widths[ii], 0, String(arr[ii]));
+        xx += widths[ii] + set_pad;
+      }
+      y += size;
+    }
+    drawSet(['', 'Name', 'Height', 'Fusers', 'Fissurers'], score_header_style);
+    y += 4;
+    let found_me = false;
+    for (let ii = 0; ii < scores.length; ++ii) {
+      let s = scores[ii];
+      let style = score_style_def;
+      let drawme = false;
+      if (s.name === score_system.player_name) {
+        style = glov_font.styleColored(null, 0x00E436ff);
+        found_me = true;
+        drawme = true;
+      }
+      if (ii < 20 || drawme) {
+        drawSet([`#${ii+1}`, score_system.formatName(s), s.score.height, s.score.fu, s.score.fi], style);
+      }
+    }
+    y += set_pad;
+    if (found_me && score_system.player_name.indexOf('Anonymous') === 0) {
+      if (!scores_edit_box) {
+        scores_edit_box = ui.createEditBox({
+          z,
+          w: (width - size) * 0.6,
+        });
+        scores_edit_box.setText(score_system.player_name);
+      }
+
+      if (scores_edit_box.run({
+        x,
+        y,
+      }) === scores_edit_box.SUBMIT || ui.buttonText({
+        x: x + scores_edit_box.w + size,
+        y: y - size * 0.25,
+        z,
+        w: (width - size) * 0.4,
+        h: ui.button_height,
+        font_height: ui.font_height * 0.75,
+        text: 'Update Player Name'
+      })) {
+        // scores_edit_box.text
+        if (scores_edit_box.text) {
+          score_system.updatePlayerName(scores_edit_box.text);
+        }
+      }
+      y += size;
+    }
+  }
 
   function test(dt) {
     const side_visible = !engine.defines.SHIDE;
@@ -609,9 +693,6 @@ export function main() {
 
     y += ui.button_height;
     x = x0;
-    let score_style = glov_font.style(null, {
-      color: 0x000000ff,
-    });
     let score_style_bad = glov_font.styleAlpha(glov_font.style(null, {
       color: 0xFF0000ff,
     }), abs(sin(engine.global_timer * 0.01)));
@@ -638,7 +719,7 @@ export function main() {
     y += ui.font_height * 0.5;
 
     font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 5, 0,
-      side_visible ? 'SCORE' : 'Score');
+      side_visible ? 'SCORE (lower is better)' : 'Score');
     y += ui.font_height;
     x = x0 + (side_visible ? 20 : 2);
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
@@ -717,8 +798,14 @@ export function main() {
       y += ui.font_height * 0.5;
 
       if (level_data.hint) {
-        y += font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
+        font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
           20, ui.font_height * 0.75, level_data.hint);
+      }
+
+      y += ui.font_height * 4; // regardless of hint height
+
+      if (have_scores) {
+        showHighScores(x, y);
       }
 
     } else {
