@@ -518,8 +518,10 @@ export function main() {
     }
   }
 
+  let last_goal_y;
   let state;
   function reset(save_old) {
+    last_goal_y = 0;
     if (save_old) {
       levels[state.level].saved = state;
       if (levels[level].saved) {
@@ -683,10 +685,6 @@ export function main() {
     let y = 10;
     let z = Z.UI;
     let selected_elem = 0;
-    function print(text, style) {
-      font.drawSizedAligned(style, x, y, z, ui.font_height, glov_font.ALIGN.HCENTER, 0, 0, String(text));
-    }
-    print.height = CELL_H;
     function elementFull(v, style, color) {
       font.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
         glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '!!!!');
@@ -805,8 +803,17 @@ export function main() {
 
     // Show goal
     y += 20;
+    let goal_y = y;
+    if (!last_goal_y || abs(goal_y - last_goal_y) < 0.01) {
+      last_goal_y = goal_y;
+    } else {
+      let delta = (goal_y - last_goal_y) * engine.this_frame_time * 0.01;
+      last_goal_y += delta;
+      goal_y = last_goal_y;
+    }
+    y = goal_y;
     x = 30;
-    print('Goal:');
+    font.drawSizedAligned(null, x, y, z, ui.font_height, glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
     x += HSPACE + 10;
     let complete = true;
     for (let ii = 0; ii < state.goal.length; ++ii) {
