@@ -8,8 +8,6 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  better modal on level complete
-    click anywhere to dismiss
   bonus level if all completed
   any way to fix antialiasing issue with Chrome?
   better vertical flow

@@ -531,7 +531,11 @@ export function main() {
 
     if (input.click()) {
       ui.playUISound('button_click');
-      endTransition();
+      if (level_data.hint && hint_fade < 1 || title_fade2 < 1) {
+        title_fade1 = title_fade2 = hint_fade = click_fade = 1;
+      } else {
+        endTransition();
+      }
     }
   }
 
@@ -555,15 +559,15 @@ export function main() {
       transition_up = true;
       glov_transition.queue(glov_transition.IMMEDIATE, glov_transition.fade(100));
       title_fade1 = title_fade2 = hint_fade = click_fade = 0;
-      transition_anim.add(0, 1100, (progress) => (title_fade1 = progress));
+      transition_anim.add(0, 1100, (progress) => (title_fade1 = max(title_fade1, progress)));
       // An eslint bug, I guess
       // eslint-disable-next-line no-unused-vars
-      let t = transition_anim.add(400, 1100, (progress) => (title_fade2 = progress));
+      let t = transition_anim.add(400, 1100, (progress) => (title_fade2 = max(title_fade2, progress)));
       if (levels[level].hint) {
-        t = transition_anim.add(t - 400, 1000, (progress) => (hint_fade = progress));
+        t = transition_anim.add(t - 400, 1000, (progress) => (hint_fade = max(hint_fade, progress)));
         t = transition_anim.add(t, 1000, (progress) => progress);
       }
-      t = transition_anim.add(t, 500, (progress) => (click_fade = progress));
+      t = transition_anim.add(t, 500, (progress) => (click_fade = max(click_fade, progress)));
     }
   }
   reset();
