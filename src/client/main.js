@@ -253,7 +253,9 @@ export function main() {
   let have_scores = false;
   score_system.init(encodeScore, parseScore, levels, 'LD45');
 
-  function GameState(level_def) {
+  function GameState() {
+    this.level = level;
+    let level_def = levels[level];
     this.w = 12;
     this.h = 16;
     this.ever_complete = false;
@@ -398,8 +400,16 @@ export function main() {
   };
 
   let state;
-  function reset() {
-    state = new GameState(levels[level]);
+  function reset(save_old) {
+    if (save_old) {
+      levels[state.level].saved = state;
+      if (levels[level].saved) {
+        state = levels[level].saved;
+        state.update();
+        return;
+      }
+    }
+    state = new GameState(level);
     state.update();
   }
   reset();
@@ -466,7 +476,7 @@ export function main() {
       let style = score_style_def;
       let drawme = false;
       if (s.name === score_system.player_name) {
-        style = glov_font.styleColored(null, 0x00E436ff);
+        style = glov_font.styleColored(null, pico8.font_colors[3]);
         found_me = true;
         drawme = true;
       }
@@ -777,7 +787,7 @@ export function main() {
       })) {
         ++level;
         complete = false;
-        reset();
+        reset(true);
       }
       x += button_w + 8;
       if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
@@ -792,7 +802,7 @@ export function main() {
         })) {
           --level;
           complete = false;
-          reset();
+          reset(true);
         }
       }
       y += ui.button_height + 8;
@@ -820,7 +830,7 @@ export function main() {
       })) {
         ++level;
         complete = false;
-        reset();
+        reset(true);
       }
       y += ui.button_height + 8;
       if (level > 0) {
@@ -829,7 +839,7 @@ export function main() {
         ) {
           --level;
           complete = false;
-          reset();
+          reset(true);
         }
       }
       y += ui.button_height + 8;

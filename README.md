@@ -9,7 +9,6 @@ Start with: `npm start` (after running `npm i` once)
 
 TODO:
   Title screen?
-  Save state of each level so you can freely go back and forth
   Infinite scroll with auto-zoom out matching aspect ratio better?
     Even if not infinite scroll, use whole width and zoom in when short
     Can start with smaller levels with larger icons and such
