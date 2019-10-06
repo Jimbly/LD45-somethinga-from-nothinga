@@ -233,21 +233,23 @@ export function main() {
       source: 'NoThINGa', // 283
       goal: 'SOMtHINGa', // 225
     },
-    // Probably not possible at our limited width/height
-    // {
-    //   name: 'capricious',
-    //   display_name: 'Worst Case Scenario',
-    //   hint: 'Hint: 513 - 456 = 57',
-    //   source: 'SUPErFlUOUS', // 513
-    //   goal: 'CaPrICIOUSnEsS', // 456
-    // },
     {
       name: '11fin',
       display_name: 'The End',
       hint: 'Thanks for playing!',
       source: 'NoThInGe',
       goal: 'FIN',
-    }
+    },
+    // Probably not possible at our limited width/height
+    {
+      name: 'bonus',
+      display_name: 'Bonus Level: Worst Case Scenario',
+      hint: 'Hint: 513 - 456 = 57\n\nI\'m not completely sure this level is possible, but my program told me' +
+        ' that these two particular words were among the top 10 words in the English language ordered by atomic' +
+        ' weight so I couldn\'t resist.',
+      source: 'SUPErFlUOUS', // 513
+      goal: 'CaPrICIOUSnEsS', // 456
+    },
   ];
   for (let ii = 0; ii < levels.length; ++ii) {
     let source = 0;
@@ -498,7 +500,7 @@ export function main() {
     let y = 100;
     font_periodic.drawSizedAligned(glov_font.styleAlpha(style_title_click, title_fade1),
       0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
-      `Level ${level+1}/${levels.length}`);
+      `Level ${level+1}/${levels.length - 1}`);
     y += size + pad;
     font_shadows.drawSizedAligned(glov_font.styleAlpha(style_title, title_fade2),
       0, y, z, size, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
@@ -870,7 +872,7 @@ export function main() {
       let color = gs ? color_goal_good : color_goal_bad;
       let style = gs ? style_goal_good : style_goal_bad;
       elementFull(v, style, color);
-      x += HSPACE + 10;
+      x += HSPACE + ((state.goal.length > 9) ? 4 : 10);
     }
     y += elementFull.height + 10;
 
@@ -925,7 +927,7 @@ export function main() {
       ui.font_height * 0.8,
       side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
       x1 - x - 5, 0,
-      `${side_visible ? 'Level ' : ''}${level+1}/${levels.length}`);
+      `${side_visible ? 'Level ' : ''}${level+1}/${levels.length - 1}`);
     y += ui.font_height;
     let level_data = levels[level];
     if (side_visible) {
@@ -989,11 +991,30 @@ export function main() {
     x = x0;
     let did_reset = false;
     let next_ok = (complete || state.ever_complete) || score_system.getScore(level);
+    let bonus_available = true;
+    for (let ii = 0; ii < levels.length - 1; ++ii) {
+      if (levels[ii].saved && levels[ii].saved.ever_complete) {
+        continue;
+      }
+      if (score_system.getScore(ii)) {
+        continue;
+      }
+      if (ii === level && complete) {
+        continue;
+      }
+      bonus_available = false;
+      break;
+    }
+    let next_disabled = bonus_available ? level === levels.length - 1 : level === levels.length - 2;
     if (side_visible) {
       let button_w = 150;
       if (ui.buttonText({
-        x, y, w: button_w, text: level === levels.length - 1 ? 'No more levels' : next_ok ? 'Next Level' : 'Skip Level',
-        disabled: level === levels.length - 1,
+        x, y, w: button_w, text: next_disabled ?
+          'No more levels' :
+          next_ok ?
+            level === levels.length - 2 ? 'Bonus Level!' : 'Next Level' :
+            'Skip Level',
+        disabled: next_disabled,
         colors: next_ok ? colors_good : null,
       })) {
         ++level;
@@ -1041,7 +1062,7 @@ export function main() {
     } else {
       if (ui.buttonText({
         x: x1 - ui.button_height - 10, y, w: ui.button_height,
-        text: '→', disabled: level === levels.length - 1,
+        text: '→', disabled: next_disabled,
         colors: next_ok ? colors_good : null,
       })) {
         ++level;
@@ -1119,10 +1140,12 @@ export function main() {
           state.ever_complete = true;
           ui.modalDialog({
             title: 'Level Complete!',
-            text: did_long_complete ?
-              '' :
-              'Congratulations, you have completed the level!\n\nYou may try to' +
-              ' improve your score, if possible, or move on to the next level.',
+            text: bonus_available ?
+              'Bonus level unlocked!' :
+              did_long_complete ?
+                '' :
+                'Congratulations, you have completed the level!\n\nYou may try to' +
+                ' improve your score, if possible, or move on to the next level.',
             buttons: { Ok: null },
             click_anywhere: true,
           });
