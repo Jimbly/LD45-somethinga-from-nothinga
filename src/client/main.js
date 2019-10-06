@@ -491,7 +491,7 @@ export function main() {
       }
       y += size;
     }
-    drawSet(['', 'Name', 'Height', 'Fusers', 'Fissurers'], score_header_style);
+    drawSet(['', 'Name', 'Height', 'Fusions', 'Fissions'], score_header_style);
     y += 4;
     let found_me = false;
     for (let ii = 0; ii < scores.length; ++ii) {
@@ -771,7 +771,7 @@ export function main() {
       fu_style = score_style_bad;
     }
     font.drawSizedAligned(fu_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
-      `Fu${side_visible ? 'sers' : ''}: ${state.num_join}${maxfu ?
+      `Fu${side_visible ? 'sions' : ''}: ${state.num_join}${maxfu ?
         side_visible ? ` (max ${level_data.max_score[1]})` : `/${level_data.max_score[1]}` :
         ''}`);
     y += ui.font_height * 0.75;
@@ -783,7 +783,7 @@ export function main() {
       fi_style = score_style_bad;
     }
     font.drawSizedAligned(fi_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
-      `Fi${side_visible ? 'ssurers' : ''}: ${state.num_split}${maxfi ?
+      `Fi${side_visible ? 'ssions' : ''}: ${state.num_split}${maxfi ?
         side_visible ? ` (max ${level_data.max_score[2]})` : `/${level_data.max_score[2]}` :
         ''}`);
     y += ui.font_height * 0.75;
