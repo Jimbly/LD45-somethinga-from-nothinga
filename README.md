@@ -9,6 +9,7 @@ Start with: `npm start` (after running `npm i` once)
 
 TODO:
   remove 1-frame height mixup when switching levels - calculate or smoothly transition
+  also zoom on width a bit?  start centered in larger board?
   Art
     Separate fission/fusion/both pipes?
   Funny quotes for each element?

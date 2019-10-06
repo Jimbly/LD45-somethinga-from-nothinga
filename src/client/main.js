@@ -34,7 +34,7 @@ const SIDE_WIDTH_OPEN = 400;
 const SIDE_WIDTH_CLOSED = 52;
 const BOARD_W = 600;
 const GAME_WIDTH_SIDE = BOARD_W + SIDE_WIDTH_OPEN;
-const GAME_WIDTH_CLOSED = BOARD_W + SIDE_WIDTH_CLOSED;
+// const GAME_WIDTH_CLOSED = BOARD_W + SIDE_WIDTH_CLOSED;
 // let app = exports;
 // Virtual viewport for our game logic
 const GAME_HEIGHT_DEFAULT = 900;
@@ -854,7 +854,7 @@ export function main() {
 
     last_frame_height = y;
 
-    if (DEBUG) {
+    if (DEBUG && false) {
       sprites.game_bg.draw({
         x: 0, y: 0, z: Z.BACKGROUND,
         w: board_need_w, h: last_frame_height,
