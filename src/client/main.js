@@ -30,13 +30,16 @@ Z.SPRITES = 10;
 Z.PARTICLES = 20;
 Z.TITLES = 200;
 
-const GAME_WIDTH_SIDE = 1000;
-const GAME_WIDTH_CLOSED = 652;
+const SIDE_WIDTH_OPEN = 400;
+const SIDE_WIDTH_CLOSED = 52;
+const BOARD_W = 600;
+const GAME_WIDTH_SIDE = BOARD_W + SIDE_WIDTH_OPEN;
+const GAME_WIDTH_CLOSED = BOARD_W + SIDE_WIDTH_CLOSED;
 // let app = exports;
 // Virtual viewport for our game logic
-export let game_width = GAME_WIDTH_SIDE;
-const BOARD_W = 600;
-export const game_height = 900;
+const GAME_HEIGHT_DEFAULT = 900;
+let last_frame_height = GAME_HEIGHT_DEFAULT;
+const side_height = 900;
 
 export let sprites = {};
 
@@ -45,8 +48,9 @@ const color_black = vec4(0, 0, 0, 1);
 
 export function main() {
   if (!engine.startup({
-    game_width,
-    game_height,
+    do_borders: false,
+    game_width: GAME_WIDTH_SIDE,
+    game_height: GAME_HEIGHT_DEFAULT,
     pixely: 'off',
     viewport_postprocess: false,
     sound_manager: require('./glov/sound_manager.js').create({
@@ -71,6 +75,7 @@ export function main() {
   })) {
     return;
   }
+  gl.clearColor(0.1, 0.1, 0.1, 1);
 
   const font = engine.font;
 
@@ -272,7 +277,7 @@ export function main() {
     this.level = level;
     let level_def = levels[level];
     this.w = 12;
-    this.h = 16;
+    this.h = 32;
     this.ever_complete = false;
     this.last_complete = false;
     this.board = new Array(this.h);
@@ -467,7 +472,10 @@ export function main() {
   let click_fade;
   let style_title = glov_font.style(null, { color: 0xFFFFFFff });
   let style_title_click = glov_font.style(null, { color: 0x808080ff });
+  const trans_width = 652;
+  const trans_height = 900;
   function showTransition() {
+    camera2d.setAspectFixed(trans_width, trans_height);
     sprites.white.draw({
       x: camera2d.x0(), y: camera2d.y0(), z: Z.TITLES,
       w: camera2d.w(), h: camera2d.h(),
@@ -480,11 +488,11 @@ export function main() {
     let level_data = levels[level];
     let y = 100;
     font.drawSizedAligned(glov_font.styleAlpha(style_title_click, title_fade1),
-      0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+      0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
       `Level ${level+1}/${levels.length}`);
     y += size + pad;
     font.drawSizedAligned(glov_font.styleAlpha(style_title, title_fade2),
-      0, y, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+      0, y, z, size, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
       level_data.display_name);
     y += size + pad;
 
@@ -493,7 +501,7 @@ export function main() {
     size /= 2;
     if (level_data.hint && hint_fade) {
       y += font.drawSizedWrapped(glov_font.styleAlpha(style_title, hint_fade),
-        100, y, z, game_width - 200, 50, size,
+        100, y, z, trans_width - 200, 50, size,
         level_data.hint);
 
       y += size;
@@ -501,14 +509,14 @@ export function main() {
       if (level === 1) {
         // first with hint
         font.drawSizedAligned(glov_font.styleAlpha(style_title_click, click_fade),
-          0, y, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+          0, y, z, size, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
           '(You can read hints again in the right panel)');
       }
     }
 
     if (click_fade) {
       font.drawSizedAligned(glov_font.styleAlpha(style_title_click, click_fade),
-        0, game_height - 100, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+        0, trans_height - 100, z, size, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
         `(${input.touch_mode ? 'tap' : 'click'} to continue)`);
     }
 
@@ -575,7 +583,7 @@ export function main() {
   function showHighScores(x, y) {
     let z = Z.UI + 10;
     let size = 16;
-    let width = game_width - x - 5;
+    let width = camera2d.x1() - x - 5;
     font.drawSizedAligned(score_style, x, y, z, size * 2, glov_font.ALIGN.HCENTERFIT, width, 0,
       `High Scores (Level ${level+1})`);
     y += size * 2 + 2;
@@ -654,23 +662,38 @@ export function main() {
 
   let did_long_complete;
   function test(dt) {
-    const side_visible = !engine.defines.SHIDE;
-    if (side_visible) {
-      game_width = GAME_WIDTH_SIDE;
-      engine.setGameDims(game_width, game_height);
-      camera2d.setAspectFixed(game_width, game_height);
-    } else {
-      game_width = GAME_WIDTH_CLOSED;
-      engine.setGameDims(game_width, game_height);
-      camera2d.setAspectFixed(game_width, game_height);
-    }
-
     if (transition_up) {
       if (transition_anim && !transition_anim.update(dt)) {
         transition_anim = null;
       }
       showTransition();
       input.eatAllInput();
+    }
+
+    const side_visible = !engine.defines.SHIDE;
+
+    // Calculate camera that will be used for side
+    let side_width = side_visible ? SIDE_WIDTH_OPEN : SIDE_WIDTH_CLOSED;
+    camera2d.setAspectFixed(side_width + BOARD_W, side_height);
+    let side_percentage = side_width / camera2d.w();
+    let side_width_engine = engine.width * side_percentage;
+    let board_avail_w = engine.width - side_width_engine;
+    let board_avail_h = engine.height;
+    let board_need_w = BOARD_W;
+    let board_need_h = last_frame_height;
+    if (board_avail_w / board_avail_h > board_need_w / board_need_h) {
+      // need to be skinny
+      let board_width_engine = board_need_w / board_need_h * engine.height;
+      let pad_engine = (board_avail_w - board_width_engine) / 2;
+      let engine_to_board = BOARD_W / board_width_engine;
+      let game_height = board_need_h;
+      camera2d.set(-pad_engine * engine_to_board, 0,
+        BOARD_W + pad_engine * engine_to_board + side_width_engine * engine_to_board, game_height);
+    } else {
+      // can fit width
+      let game_width = board_need_w / (1 - side_percentage);
+      let game_height = board_need_h;
+      camera2d.setAspectFixed(game_width, game_height);
     }
 
     const HSPACE = (BOARD_W - 24) / state.w;
@@ -827,32 +850,38 @@ export function main() {
       elementFull(v, style, color);
       x += HSPACE + 10;
     }
+    y += elementFull.height + 10;
 
+    last_frame_height = y;
 
-    sprites.game_bg.draw({
-      x: 0, y: 0, z: Z.BACKGROUND,
-      w: BOARD_W, h: game_height,
-      color: [0.1, 0.1, 0.1, 1]
-    });
+    if (DEBUG) {
+      sprites.game_bg.draw({
+        x: 0, y: 0, z: Z.BACKGROUND,
+        w: board_need_w, h: last_frame_height,
+        color: [0.2, 0.2, 0.2, 1]
+      });
+    }
 
     // draw side UI
-    x = BOARD_W;
+    camera2d.setAspectFixed(side_width + BOARD_W, side_height);
+    let x1 = camera2d.x1();
+    x = x1 - side_width;
     y = 0;
     sprites.game_bg.draw({
-      x, y, z: Z.BACKGROUND,
-      w: game_width - BOARD_W, h: game_height,
+      x, y: camera2d.y0(), z: Z.BACKGROUND,
+      w: side_width, h: camera2d.h(),
       color: [0.9, 0.9, 0.9, 1]
     });
 
     if (ui.buttonText({
-      x: game_width - ui.button_height - 10, y: 10 ,
+      x: x1 - ui.button_height - 10, y: camera2d.y0() + 10,
       w: ui.button_height,
       text: engine.defines.SHIDE ? '«' : '»',
     })) {
       engine.defines.SHIDE = !engine.defines.SHIDE;
     }
 
-    x0 = BOARD_W + (side_visible ? 10 : 5);
+    x0 = x1 - side_width + (side_visible ? 10 : 5);
     y += side_visible ? 10 : 20;
     x = x0;
 
@@ -870,20 +899,20 @@ export function main() {
 
     font.drawSizedAligned(score_style, x, y, z, ui.font_height,
       side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
-      game_width - x - 5, 0,
+      x1 - x - 5, 0,
       `${side_visible ? 'Level ' : ''}${level+1}/${levels.length}`);
     y += ui.font_height;
     let level_data = levels[level];
     if (side_visible) {
       font.drawSizedAligned(score_style, x, y, z, ui.font_height,
         side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
-        game_width - x - 5, 0,
+        x1 - x - 5, 0,
         level_data.display_name);
       y += ui.font_height;
     }
     y += ui.font_height * 0.5;
 
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 5, 0,
+    font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, x1 - x - 5, 0,
       side_visible ? 'SCORE (lower is better)' : 'Score');
     y += ui.font_height;
     x = x0 + (side_visible ? 20 : 2);
@@ -898,7 +927,7 @@ export function main() {
       complete = false;
       fu_style = score_style_bad;
     }
-    font.drawSizedAligned(fu_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+    font.drawSizedAligned(fu_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, x1 - x - 2, 0,
       `Fu${side_visible ? 'sions' : ''}: ${state.num_join}${maxfu ?
         side_visible ? ` (max ${level_data.max_score[1]})` : `/${level_data.max_score[1]}` :
         ''}`);
@@ -910,7 +939,7 @@ export function main() {
       complete = false;
       fi_style = score_style_bad;
     }
-    font.drawSizedAligned(fi_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+    font.drawSizedAligned(fi_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HFIT, x1 - x - 2, 0,
       `Fi${side_visible ? 'ssions' : ''}: ${state.num_split}${maxfi ?
         side_visible ? ` (max ${level_data.max_score[2]})` : `/${level_data.max_score[2]}` :
         ''}`);
@@ -923,7 +952,7 @@ export function main() {
       total_style = score_style_bad_static;
     }
     if (!complete) {
-      font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+      font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, x1 - x - 2, 0,
         side_visible ? over_limits ? 'Over limits' : 'Goal not met' : over_limits ? 'Limt' : 'Inc');
     }
     y += ui.font_height;
@@ -964,7 +993,7 @@ export function main() {
       y += ui.font_height * 0.5;
 
       if (level_data.hint) {
-        font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
+        font.drawSizedWrapped(hint_style, x, y, z, x1 - x - 5,
           20, ui.font_height * 0.75, level_data.hint);
         level_data.did_hint = true;
       }
@@ -975,16 +1004,16 @@ export function main() {
         showHighScores(x, y);
       }
 
-      y = game_height - ui.button_height - 10;
+      y = side_height - ui.button_height - 10;
       if (ui.buttonText({
-        x: game_width - 120 - 10, w: 120, y, z, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
+        x: x1 - 120 - 10, w: 120, y, z, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
       })) {
         sound_manager.music_on = !sound_manager.music_on;
         state.update();
       }
     } else {
       if (ui.buttonText({
-        x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        x: x1 - ui.button_height - 10, y, w: ui.button_height,
         text: '->', disabled: level === levels.length - 1,
         colors: complete ? colors_good : null,
       })) {
@@ -994,7 +1023,7 @@ export function main() {
       }
       y += ui.button_height + 8;
       if (level > 0) {
-        if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        if (ui.buttonText({ x: x1 - ui.button_height - 10, y, w: ui.button_height,
           text: '<-' })
         ) {
           --level;
@@ -1005,7 +1034,7 @@ export function main() {
       y += ui.button_height + 8;
       if (level_data.hint && ui.buttonText({
         colors: !level_data.did_hint ? colors_good : null,
-        x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        x: x1 - ui.button_height - 10, y, w: ui.button_height,
         text: '!'
       })) {
         level_data.did_hint = true;
@@ -1027,15 +1056,15 @@ export function main() {
       let bg_color = vec4(1,1,1, 1);
       hsvToRGB(bg_color, bg_hsv[0], bg_hsv[1], bg_hsv[2]);
       z = Z.UI + 50;
-      if (input.mousePos()[0] < BOARD_W / 2) {
-        x = BOARD_W - PAD - BIG_W;
+      if (input.mousePos()[0] < camera2d.x0() + (x0 - camera2d.x0()) / 2) {
+        x = camera2d.x1() - side_width - PAD - BIG_W;
       } else {
-        x = PAD;
+        x = camera2d.x0() + PAD;
       }
-      if (input.mousePos()[1] < game_height / 2) {
-        y = game_height - BIG_H - PAD;
+      if (input.mousePos()[1] < side_height * 2 / 3) {
+        y = camera2d.y1() - BIG_H - PAD;
       } else {
-        y = PAD;
+        y = camera2d.y0() + PAD;
       }
 
       font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9 * BIG_SCALE,
