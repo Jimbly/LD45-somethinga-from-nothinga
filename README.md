@@ -8,7 +8,6 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  say "next level" if you've ever completed it
   start centered
   better modal on level complete
     click anywhere to dismiss

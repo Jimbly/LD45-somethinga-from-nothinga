@@ -595,7 +595,11 @@ export function main() {
       `High Scores (Level ${level+1})`);
     y += size * 2 + 2;
     let scores = score_system.high_scores[levels[level].name];
-    assert(scores);
+    if (!scores) {
+      font.drawSizedAligned(score_style, x, y, z, size, glov_font.ALIGN.HCENTERFIT, width, 0,
+        'Loading...');
+      return; // still loading
+    }
     let widths = [8, 40, 15, 24, 20];
     let widths_total = 0;
     for (let ii = 0; ii < widths.length; ++ii) {
@@ -979,10 +983,11 @@ export function main() {
     let did_reset = false;
     if (side_visible) {
       let button_w = 150;
+      let next_ok = (complete || state.ever_complete) || score_system.getScore(level);
       if (ui.buttonText({
-        x, y, w: button_w, text: level === levels.length - 1 ? 'No more levels' :complete ? 'Next Level' : 'Skip Level',
+        x, y, w: button_w, text: level === levels.length - 1 ? 'No more levels' : next_ok ? 'Next Level' : 'Skip Level',
         disabled: level === levels.length - 1,
-        colors: complete ? colors_good : null,
+        colors: next_ok ? colors_good : null,
       })) {
         ++level;
         did_reset = true;
@@ -1017,9 +1022,7 @@ export function main() {
 
       y += ui.font_height * 5; // regardless of hint height
 
-      if (have_scores) {
-        showHighScores(x, y);
-      }
+      showHighScores(x, y);
 
       y = side_height - ui.button_height - 10;
       if (ui.buttonText({
