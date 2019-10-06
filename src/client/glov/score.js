@@ -2,8 +2,8 @@
 // Released under MIT License: https://opensource.org/licenses/MIT
 /* eslint-env browser */
 /* eslint callback-return:off */
-/* global $ */
 
+const assert = require('assert');
 const PLAYER_NAME_KEY = 'ld.player_name';
 
 export let need_update = false;
@@ -40,11 +40,27 @@ export function formatName(score) {
   return score.name;
 }
 
+function fetchJSON(param) {
+  assert(param.url);
+  assert(param.success);
+  let xhr = new XMLHttpRequest();
+  xhr.open('GET', param.url, true);
+  xhr.responseType = 'json';
+  xhr.onload = () => {
+    param.success(xhr.response);
+  };
+  if (param.error) {
+    xhr.onerror = param.error;
+  }
+  xhr.send(null);
+
+}
+
 let num_highscores = 20000;
 let score_update_time = 0;
 export let high_scores = {};
 function refreshScores(level, changed_cb) {
-  $.ajax({
+  fetchJSON({
     url: `${score_host}/api/scoreget?key=${SCORE_KEY}.${level}&limit=${num_highscores}`,
     success: function (scores) {
       let list = [];
@@ -65,7 +81,7 @@ function clearScore(level, old_player_name, cb) {
   if (!old_player_name) {
     return;
   }
-  $.ajax({ url: `${score_host}/api/scoreclear?key=${SCORE_KEY}.${level}&name=${old_player_name}`, success: cb });
+  fetchJSON({ url: `${score_host}/api/scoreclear?key=${SCORE_KEY}.${level}&name=${old_player_name}`, success: cb });
 }
 
 function submitScore(level, score, cb) {
@@ -73,7 +89,7 @@ function submitScore(level, score, cb) {
   if (!player_name) {
     return;
   }
-  $.ajax({
+  fetchJSON({
     url: `${score_host}/api/scoreset?key=${SCORE_KEY}.${level}&name=${player_name}&score=${high_score}`,
     success: function (scores) {
       let list = [];

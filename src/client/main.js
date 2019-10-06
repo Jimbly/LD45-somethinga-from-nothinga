@@ -9,6 +9,7 @@ const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
 const input = require('./glov/input.js');
 //const glov_particles = require('./glov/particles.js');
+const score_system = require('./glov/score.js');
 const glov_sprites = require('./glov/sprites.js');
 //const glov_sprite_animation = require('./glov/sprite_animation.js');
 //const glov_transition = require('./glov/transition.js');
@@ -102,102 +103,118 @@ export function main() {
     return ret;
   }
 
-  let level = 12;
+  let level = 0;
   let levels = [
     {
-      name: 'Tutorial 1/4: fusion',
+      name: 'tut1',
+      display_name: 'Tutorial 1/4: fusion',
       source: 'NO',
       goal: 'P',
       max_score: [null, 1, null],
     },
     {
-      name: 'Tutorial 2/4: fission, waste',
+      name: 'tut2',
+      display_name: 'Tutorial 2/4: fission, waste',
       hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output',
       source: 'As', // 33
       goal: 'HHO', // 10
       max_score: [null, 0, null],
     },
     { // easy, but exact
-      name: 'Japanese',
+      name: '1jp',
+      display_name: 'Japanese',
       hint: '"Mu" (Japanese) (noun): nothing; nothingness',
       source: 'MoO', // 50
       goal: 'NaY', // 50
     },
     { // my score: 6/3/7; easy
-      name: 'Chinese',
+      name: '2cn',
+      display_name: 'Chinese',
       hint: '"Mò" (Chinese) (noun): nothing; no one',
       source: 'Mo', // 42
       goal: 'SiNO', // 29
     },
     {
-      name: 'Tutorial 3/4: fission, parity',
+      name: 'tut3',
+      display_name: 'Tutorial 3/4: fission, parity',
       hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row',
       source: 'Li', // 3
       goal: 'HeH', // 3
       max_score: [null,0,1],
     },
     { // my score: 6/6/6
-      name: 'Tutorial 4/4: "reality"',
+      name: 'tut4',
+      display_name: 'Tutorial 4/4: "reality"',
       hint: 'Hint: You cannot invent new elements, that might be dangerous',
       source: 'WPd', // 120
       goal: 'NdNd', // 120
     },
     { // my score 5/6/8
-      name: 'Latvian',
+      name: '4lt',
+      display_name: 'Latvian',
       hint: '"Neko" (Latvian) (noun): nothing',
       source: 'NeKO',
       goal: 'LiONS',
     },
     { // my score: 7/7/11; medium
-      name: 'Catalan',
+      name: '5ct',
+      display_name: 'Catalan',
       hint: '"Res" (Catalan) (adverb): nothing',
       source: 'ReS', // 91
       goal: 'ArTiSTiC', // 84
     },
     { // 10/12/16 medium-low
-      name: 'Irish',
+      name: '6ir',
+      display_name: 'Irish',
       hint: '"Neamhní" (Irish) (noun): nothing',
       source: 'NeAmHNI', // 166
       goal: 'IrISH', // 147
     },
     { // my score: 8/7/10; low-medium
-      name: 'WTFBBQ',
+      name: '7wt',
+      display_name: 'WTFBBQ',
       source: 'WThF', // 173
       goal: 'BaBaCu', // 141
     },
     { // my score: 10/9/15; medium
-      name: 'German',
+      name: '8de',
+      display_name: 'German',
       hint: '"Nichts" (German) (noun): a quantity of no importance; nothing',
       source: 'NiCHTs', // 152
       goal: 'NIXe', // 114
       // goal: 'HOH', // 10
     },
     { // my score: 11/12/18; trickyish
-      name: 'Esperanto',
+      name: '9ep',
+      display_name: 'Esperanto',
       hint: '"Nenio" (Esperanto) (noun): nothing',
       source: 'NeNIO', // 78
       goal: 'AlCoHOLiCS', // 74
     },
     // {
-    //   name: 'It\s the thought that counts',
+    //   name: 'ld',
+    //   display_name: 'It\s the thought that counts',
     //   source: 'LuDbUMdArRe',
     //   goal: 'GaMdEuV',
     // },
     {
-      name: 'SOMtHINGa from NoThINGa',
+      name: '10ti',
+      display_name: 'SOMtHINGa from NoThINGa',
       hint: '"Nothing" (noun): something that does not exist',
       source: 'NoThINGa', // 283
       goal: 'SOMtHINGa', // 225
     },
     // Probably not possible at our limited width/height
     // {
-    //   name: 'Worst Case Scenario',
+    //   name: 'capricious',
+    //   display_name: 'Worst Case Scenario',
     //   hint: 'Hint: 513 - 456 = 57',
     //   source: 'SUPErFlUOUS', // 513
     //   goal: 'CaPrICIOUSnEsS', // 456
     // },
     {
-      name: 'The End',
+      name: '11fin',
+      display_name: 'The End',
       hint: 'Thanks for playing!',
       source: 'NoThInGe',
       goal: 'FIN',
@@ -208,9 +225,32 @@ export function main() {
     stringToElems(levels[ii].source).filter((a) => (source += a));
     let goal = 0;
     stringToElems(levels[ii].goal).filter((a) => (goal += a));
-    console.log(levels[ii].source, source, levels[ii].goal, goal);
+    // console.log(levels[ii].source, source, levels[ii].goal, goal);
     assert(source >= goal);
   }
+
+  function encodeScore(score) {
+    assert(score.height && (score.fu || score.fi));
+    return (999 - score.height) * 1000 * 1000 +
+      (999 - score.fu) * 1000 +
+      (999 - score.fi);
+  }
+
+  function parseScore(value) {
+    let height = floor(value / (1000 * 1000));
+    value -= height * 1000 * 1000;
+    let fu = floor(value / 1000);
+    value -= fu * 1000;
+    let fi = value;
+    return {
+      height: 999 - height,
+      fu: 999 - fu,
+      fi: 999 - fi,
+    };
+  }
+
+  let have_scores = false;
+  score_system.init(encodeScore, parseScore, levels, 'LD45');
 
   function GameState(level_def) {
     this.w = 12;
@@ -232,7 +272,7 @@ export function main() {
     for (let ii = 0; ii < this.edges.length; ++ii) {
       this.edges[ii] = new Array(this.w * 2 - 1);
       for (let jj = 0; jj < this.edges[ii].length; ++jj) {
-        this.edges[ii][jj] = 0;
+        this.edges[ii][jj] = 1;
       }
     }
     this.goal = stringToElems(level_def.goal);
@@ -359,6 +399,8 @@ export function main() {
   function reset() {
     state = new GameState(levels[level]);
     state.update();
+    score_system.getScore(level);
+    have_scores = false;
   }
   reset();
 
@@ -590,7 +632,7 @@ export function main() {
       font.drawSizedAligned(score_style, x, y, z, ui.font_height,
         side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
         game_width - x - 5, 0,
-        level_data.name);
+        level_data.display_name);
       y += ui.font_height;
     }
     y += ui.font_height * 0.5;
@@ -650,10 +692,12 @@ export function main() {
         colors: complete ? colors_good : null,
       })) {
         ++level;
+        complete = false;
         reset();
       }
       x += button_w + 8;
       if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
+        complete = false;
         reset();
       }
       y += ui.button_height + 8;
@@ -663,6 +707,7 @@ export function main() {
           x, y, w: button_w, text: 'Previous Level',
         })) {
           --level;
+          complete = false;
           reset();
         }
       }
@@ -676,32 +721,12 @@ export function main() {
           20, ui.font_height * 0.75, level_data.hint);
       }
 
-      if (selected_elem) {
-        const BIG_W = 300;
-        const PAD = (game_width - BOARD_W - BIG_W) / 2;
-        let BIG_H = BIG_W * 1.20;
-        let BIG_BORDER = 8;
-        x = game_width - BIG_W - PAD;
-        y = game_height - BIG_H - PAD;
-
-        font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9,
-          glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
-          periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
-        font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2,
-          glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
-          periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
-        ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
-        ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
-          x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, color_white);
-        font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5,
-          glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
-      }
-
     } else {
       if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
         text: '->', disabled: level === levels.length - 1 })
       ) {
         ++level;
+        complete = false;
         reset();
       }
       y += ui.button_height + 8;
@@ -710,6 +735,7 @@ export function main() {
           text: '<-' })
         ) {
           --level;
+          complete = false;
           reset();
         }
       }
@@ -724,6 +750,43 @@ export function main() {
         });
       }
       y += ui.button_height + 8;
+    }
+
+    if (selected_elem) {
+      const PAD = 25;
+      const BIG_W = BOARD_W / 2 - PAD;
+      let BIG_H = BIG_W * 1.20;
+      let BIG_BORDER = 8;
+      z = Z.UI + 50;
+      if (input.mousePos()[0] < BOARD_W / 2) {
+        x = BOARD_W / 2;
+      } else {
+        x = PAD;
+      }
+      if (input.mousePos()[1] < game_height / 2) {
+        y = game_height - BIG_H - PAD;
+      } else {
+        y = PAD;
+      }
+
+      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9,
+        glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
+        periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
+      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2,
+        glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
+        periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
+      ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
+      ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
+        x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, color_white);
+      font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5,
+        glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
+    }
+
+    if (complete) {
+      score_system.setScore(level,
+        { height: state.active_height, fu: state.num_join, fi: state.num_split },
+        () => (have_scores = true)
+      );
     }
   }
 
