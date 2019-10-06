@@ -121,7 +121,7 @@ export function main() {
     return ret;
   }
 
-  let level = 0;
+  let level = DEBUG ? 3 : 0;
   let levels = [
     {
       name: 'tut1',
@@ -146,13 +146,6 @@ export function main() {
       source: 'MoO', // 50
       goal: 'NaY', // 50
     },
-    { // my score: 6/3/7; easy
-      name: '2cn',
-      display_name: 'Chinese',
-      hint: '"Mò" (Chinese) (noun): nothing; no one',
-      source: 'Mo', // 42
-      goal: 'SiNO', // 29
-    },
     {
       name: 'tut3',
       display_name: 'Tutorial 3/4: fission, parity',
@@ -161,6 +154,13 @@ export function main() {
       source: 'Li', // 3
       goal: 'HeH', // 3
       max_score: [null,0,1],
+    },
+    { // my score: 6/3/7; easy
+      name: '2cn',
+      display_name: 'Chinese',
+      hint: '"Mò" (Ancient Chinese) (noun): nothing; no one',
+      source: 'Mo', // 42
+      goal: 'SiNO', // 29
     },
     { // my score: 6/6/6
       name: 'tut4',
@@ -826,6 +826,11 @@ export function main() {
 
     // Show goal
     y += 20;
+    if (state.active_height < state.h - 2) {
+      y += 45;
+    } else if (state.active_height < state.h - 1) {
+      y += CELL_H;
+    }
     let goal_y = y;
     if (!last_goal_y || abs(goal_y - last_goal_y) < 0.01) {
       last_goal_y = goal_y;
@@ -1087,7 +1092,7 @@ export function main() {
           () => (have_scores = true)
         );
         if (!state.ever_complete) {
-          ui.playUISound('fanfare', 0.5);
+          ui.playUISound('fanfare', 0.2);
           state.ever_complete = true;
           ui.modalDialog({
             title: 'Level Complete!',
@@ -1099,7 +1104,7 @@ export function main() {
           });
           did_long_complete = true;
         } else if (!state.last_complete) {
-          ui.playUISound('fanfare', 0.5);
+          ui.playUISound('fanfare', 0.2);
         }
       }
       state.last_complete = complete;
