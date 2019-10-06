@@ -130,7 +130,7 @@ export function main() {
     return ret;
   }
 
-  let level = 0;
+  let level = DEBUG ? 8 : 0;
   let levels = [
     {
       name: 'tut1',
@@ -756,7 +756,7 @@ export function main() {
     function elementSmall(v, style, color) {
       let bg_style = glov_font.styleAlpha(style, 0.5);
       bg_style = glov_font.style(bg_style, {
-        outline_width: 1.0,
+        outline_width: 0.5,
         outline_color: bg_style.color
       });
       font_periodic.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
@@ -1122,7 +1122,7 @@ export function main() {
       font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
-      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2 * BIG_SCALE,
+      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.8, z, ui.font_height * 2 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
       drawHollowRect(x, y, x + BIG_W, y + BIG_H, z - 2, BIG_BORDER, color_black, bg_color);
