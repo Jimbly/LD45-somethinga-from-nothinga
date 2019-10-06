@@ -20,7 +20,7 @@ const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
 const { abs, floor, max, min, sin } = Math;
 
-const { vec2, vec4 } = require('./glov/vmath.js');
+const { vec2, vec4, v4copy } = require('./glov/vmath.js');
 
 const DEBUG = window.location.host.indexOf('localhost') !== -1;
 
@@ -64,6 +64,7 @@ export function main() {
       button_rollover: ['ui.local/button_rollover', [2,60,2], [64]],
       button_down: ['ui.local/button_down', [2,60,2], [64]],
       button_disabled: ['ui.local/button_disabled', [2,60,2], [64]],
+      panel: ['ui.local/panel', [2,60,2], [2,60,2]],
     },
     ui_sounds: {
       button_click: [
@@ -79,6 +80,7 @@ export function main() {
   })) {
     return;
   }
+  v4copy(ui.color_panel, pico8.colors[7]);
   let font_periodic = glov_font.create(require('./img/font/oswald56.json'), 'font/oswald56');
   let font_shadows = glov_font.create(require('./img/font/shadows32.json'), 'font/shadows32');
 
@@ -886,7 +888,7 @@ export function main() {
     sprites.game_bg.draw({
       x, y: camera2d.y0(), z: Z.BACKGROUND,
       w: side_width, h: camera2d.h(),
-      color: [0.9, 0.9, 0.9, 1]
+      color: pico8.colors[7]
     });
 
     if (ui.buttonText({
@@ -904,10 +906,10 @@ export function main() {
     y += ui.button_height;
     x = x0;
     let score_style_bad = glov_font.styleAlpha(glov_font.style(null, {
-      color: 0xFF0000ff,
+      color: pico8.font_colors[8],
     }), abs(sin(engine.global_timer * 0.01)));
     let score_style_bad_static = glov_font.style(null, {
-      color: 0x800000ff,
+      color: pico8.font_colors[8], // 0x800000ff,
     });
     let hint_style = glov_font.style(null, {
       color: 0x202020ff,
@@ -955,7 +957,7 @@ export function main() {
     y += ui.font_height * 0.75;
     let maxfi = level_data.max_score && level_data.max_score[2] !== null;
     let fi_style = score_style;
-    if (maxfi && state.num_join > level_data.max_score[2]) {
+    if (maxfi && state.num_split > level_data.max_score[2]) {
       over_limits = true;
       complete = false;
       fi_style = score_style_bad;
@@ -982,9 +984,9 @@ export function main() {
 
     x = x0;
     let did_reset = false;
+    let next_ok = (complete || state.ever_complete) || score_system.getScore(level);
     if (side_visible) {
       let button_w = 150;
-      let next_ok = (complete || state.ever_complete) || score_system.getScore(level);
       if (ui.buttonText({
         x, y, w: button_w, text: level === levels.length - 1 ? 'No more levels' : next_ok ? 'Next Level' : 'Skip Level',
         disabled: level === levels.length - 1,
@@ -1035,8 +1037,8 @@ export function main() {
     } else {
       if (ui.buttonText({
         x: x1 - ui.button_height - 10, y, w: ui.button_height,
-        text: '->', disabled: level === levels.length - 1,
-        colors: complete ? colors_good : null,
+        text: '→', disabled: level === levels.length - 1,
+        colors: next_ok ? colors_good : null,
       })) {
         ++level;
         did_reset = true;
@@ -1045,7 +1047,7 @@ export function main() {
       y += ui.button_height + 8;
       if (level > 0) {
         if (ui.buttonText({ x: x1 - ui.button_height - 10, y, w: ui.button_height,
-          text: '<-' })
+          text: '←' })
         ) {
           --level;
           did_reset = true;
@@ -1062,6 +1064,7 @@ export function main() {
         ui.modalDialog({
           text: `\n${level_data.hint}`,
           buttons: { Ok: null },
+          click_anywhere: true,
         });
       }
       y += ui.button_height + 8;
@@ -1117,6 +1120,7 @@ export function main() {
               'Congratulations, you have completed the level!\n\nYou may try to' +
               ' improve your score, if possible, or move on to the next level.',
             buttons: { Ok: null },
+            click_anywhere: true,
           });
           did_long_complete = true;
         } else if (!state.last_complete) {
