@@ -137,7 +137,8 @@ export function main() {
     {
       name: 'tut3',
       display_name: 'Tutorial 3/4: fission, parity',
-      hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row',
+      hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row.\n\n' +
+        'Also note, outputs need to be provided in order.',
       source: 'Li', // 3
       goal: 'HeH', // 3
       max_score: [null,0,1],
