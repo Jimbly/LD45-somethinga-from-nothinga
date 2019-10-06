@@ -17,7 +17,7 @@ const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
-const { abs, floor, max, min, sin } = Math;
+const { abs, floor, max, sin } = Math;
 
 const { vec2, vec4 } = require('./glov/vmath.js');
 
@@ -600,7 +600,7 @@ export function main() {
         scores_edit_box.setText(score_system.player_name);
       }
 
-      if (scores_edit_box.run({
+      if (!transition_up && scores_edit_box.run({
         x,
         y,
       }) === scores_edit_box.SUBMIT || ui.buttonText({

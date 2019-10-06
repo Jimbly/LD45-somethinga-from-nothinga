@@ -8,7 +8,6 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  Transition screens between levels - show title, show hint
   Atmospheric sounds:
     burble, machine noises?
   Art
