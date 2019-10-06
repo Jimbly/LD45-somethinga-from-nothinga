@@ -8,9 +8,14 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  add 莫 (trad chin) and 無 (jp) to font
-  remove 1-frame height mixup when switching levels - calculate or smoothly transition
+  say "next level" if you've ever completed it
+  start centered
+  better modal on level complete
+    click anywhere to dismiss
+  bonus level if all completed
   any way to fix antialiasing issue with Chrome?
+  better vertical flow
+  remove 1-frame height mixup when switching levels - calculate or smoothly transition
   also zoom on width a bit?  start centered in larger board?
   Art
     Separate fission/fusion/both pipes?

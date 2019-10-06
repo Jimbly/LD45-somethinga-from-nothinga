@@ -72,9 +72,16 @@ export function main() {
       fanfare: 'fanfare',
       fanfare_mini: ['fanfare_mini1', 'fanfare_mini2'],
     },
+    // font: {
+    //   info: require('./img/font/oswald32.json'),
+    //   texture: 'font/oswald32',
+    // },
   })) {
     return;
   }
+  let font_periodic = glov_font.create(require('./img/font/oswald32.json'), 'font/oswald32');
+  let font_shadows = glov_font.create(require('./img/font/shadows32.json'), 'font/shadows32');
+
   gl.clearColor(0.1, 0.1, 0.1, 1);
 
   const font = engine.font;
@@ -142,7 +149,7 @@ export function main() {
     { // easy, but exact
       name: '1jp',
       display_name: 'Japanese',
-      hint: '"Mu" (Japanese) (noun): nothing; nothingness',
+      hint: '無 (Japanese "Mu") (noun): nothing; nothingness',
       source: 'MoO', // 50
       goal: 'NaY', // 50
     },
@@ -158,7 +165,7 @@ export function main() {
     { // my score: 6/3/7; easy
       name: '2cn',
       display_name: 'Chinese',
-      hint: '"Mò" (Ancient Chinese) (noun): nothing; no one',
+      hint: '莫 (Ancient Chinese "Mò") (noun): nothing; no one',
       source: 'Mo', // 42
       goal: 'SiNO', // 29
     },
@@ -487,11 +494,11 @@ export function main() {
     let pad = 8;
     let level_data = levels[level];
     let y = 100;
-    font.drawSizedAligned(glov_font.styleAlpha(style_title_click, title_fade1),
+    font_periodic.drawSizedAligned(glov_font.styleAlpha(style_title_click, title_fade1),
       0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
       `Level ${level+1}/${levels.length}`);
     y += size + pad;
-    font.drawSizedAligned(glov_font.styleAlpha(style_title, title_fade2),
+    font_shadows.drawSizedAligned(glov_font.styleAlpha(style_title, title_fade2),
       0, y, z, size, glov_font.ALIGN.HCENTERFIT, trans_width, 0,
       level_data.display_name);
     y += size + pad;
@@ -540,7 +547,7 @@ export function main() {
     }
     state = new GameState(level);
     state.update();
-    if (!levels[level].did_transition && !DEBUG) {
+    if (!levels[level].did_transition) { //  && !DEBUG) {
       levels[level].did_transition = true;
       transition_anim = animation.create();
       transition_up = true;
@@ -584,7 +591,7 @@ export function main() {
     let z = Z.UI + 10;
     let size = 16;
     let width = camera2d.x1() - x - 5;
-    font.drawSizedAligned(score_style, x, y, z, size * 2, glov_font.ALIGN.HCENTERFIT, width, 0,
+    font_periodic.drawSizedAligned(score_style, x, y, z, size * 2, glov_font.ALIGN.HCENTERFIT, width, 0,
       `High Scores (Level ${level+1})`);
     y += size * 2 + 2;
     let scores = score_system.high_scores[levels[level].name];
@@ -709,12 +716,12 @@ export function main() {
     let z = Z.UI;
     let selected_elem = 0;
     function elementFull(v, style, color) {
-      font.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
+      font_periodic.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
         glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '!!!!');
       ui.drawRect(x - RECT_HW, y, x + RECT_HW, y + CELL_H * 2, z - 2, color || color_white);
       ui.drawRect(x - RECT_HW + RECT_BORDER, y + RECT_BORDER,
         x + RECT_HW - RECT_BORDER, y + CELL_H * 2 - RECT_BORDER, z - 1, color_black);
-      font.drawSizedAligned(style, x - RECT_HW + RECT_BORDER, y + CELL_H * 1.25, z, ui.font_height * 0.75,
+      font_periodic.drawSizedAligned(style, x - RECT_HW + RECT_BORDER, y + CELL_H * 1.25, z, ui.font_height * 0.75,
         glov_font.ALIGN.HRIGHT, RECT_HW * 2 - RECT_BORDER * 2, 0, `${v}`);
       if (input.mouseOver({
         x: x - RECT_HW,
@@ -734,7 +741,7 @@ export function main() {
         outline_width: 1.5,
         outline_color: bg_style.color
       });
-      font.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
+      font_periodic.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
         glov_font.ALIGN.HCENTER,
         SMALL_HW * 2 - RECT_BORDER * 2, 0, `${periodic[v] ? periodic[v][0] : '!!!!'}`);
       ui.drawRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, color || color_white);
@@ -744,7 +751,7 @@ export function main() {
         outline_width: 1,
         outline_color: 0x00000080,
       });
-      font.drawSizedAligned(fg_style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height * 0.75,
+      font_periodic.drawSizedAligned(fg_style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height * 0.75,
         glov_font.ALIGN.HRIGHT | glov_font.ALIGN.VBOTTOM, SMALL_HW * 2 - RECT_BORDER * 2, CELL_H, String(v));
     }
     elementSmall.height = CELL_H;
@@ -752,7 +759,7 @@ export function main() {
       ui.drawRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, color || color_white);
       ui.drawRect(x - SMALL_HW + RECT_BORDER, y + RECT_BORDER,
         x + SMALL_HW - RECT_BORDER, y + CELL_H - RECT_BORDER, z - 1, color_black);
-      font.drawSizedAligned(style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height,
+      font_periodic.drawSizedAligned(style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height,
         glov_font.ALIGN.HCENTER | glov_font.ALIGN.VCENTER, SMALL_HW * 2 - RECT_BORDER * 2, CELL_H, String(v));
     }
     numberSmall.height = CELL_H;
@@ -841,7 +848,7 @@ export function main() {
     }
     y = goal_y;
     x = 30;
-    font.drawSizedAligned(null, x, y, z, ui.font_height, glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
+    font_periodic.drawSizedAligned(null, x, y, z, ui.font_height, glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
     x += HSPACE + 10;
     let complete = true;
     for (let ii = 0; ii < state.goal.length; ++ii) {
@@ -902,25 +909,29 @@ export function main() {
       color: 0x202020ff,
     });
 
-    font.drawSizedAligned(score_style, x, y, z, ui.font_height,
+    font_periodic.drawSizedAligned(side_visible ? glov_font.styleColored(score_style, pico8.font_colors[5]) : score_style,
+      x, y, z,
+      ui.font_height * 0.8,
       side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
       x1 - x - 5, 0,
       `${side_visible ? 'Level ' : ''}${level+1}/${levels.length}`);
     y += ui.font_height;
     let level_data = levels[level];
     if (side_visible) {
-      font.drawSizedAligned(score_style, x, y, z, ui.font_height,
+      font_periodic.drawSizedAligned(score_style, x, y, z, ui.font_height * 1.35,
         side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
         x1 - x - 5, 0,
         level_data.display_name);
-      y += ui.font_height;
+      y += ui.font_height * 1.35;
     }
     y += ui.font_height * 0.5;
 
+    x = x0 + (side_visible ? 40 : 0);
     font.drawSizedAligned(score_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, x1 - x - 5, 0,
       side_visible ? 'SCORE (lower is better)' : 'Score');
     y += ui.font_height;
-    x = x0 + (side_visible ? 20 : 2);
+    let indent = (side_visible ? 20 : 2);
+    x += indent;
     font.drawSizedAligned(score_style, x, y, z, ui.font_height * 0.75, glov_font.ALIGN.HLEFT, 0, 0,
       `H${side_visible ? 'eight' : ''}: ${state.active_height}`);
     y += ui.font_height * 0.75;
@@ -949,7 +960,7 @@ export function main() {
         side_visible ? ` (max ${level_data.max_score[2]})` : `/${level_data.max_score[2]}` :
         ''}`);
     y += ui.font_height * 0.75;
-    x = x0;
+    x -= indent;
     let total_style = score_style;
     if (over_limits) {
       total_style = score_style_bad;
@@ -964,6 +975,7 @@ export function main() {
 
     y += ui.font_height * 0.5;
 
+    x = x0;
     let did_reset = false;
     if (side_visible) {
       let button_w = 150;
@@ -1003,7 +1015,7 @@ export function main() {
         level_data.did_hint = true;
       }
 
-      y += ui.font_height * 4; // regardless of hint height
+      y += ui.font_height * 5; // regardless of hint height
 
       if (have_scores) {
         showHighScores(x, y);
@@ -1072,16 +1084,16 @@ export function main() {
         y = camera2d.y0() + PAD;
       }
 
-      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9 * BIG_SCALE,
+      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
-      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2 * BIG_SCALE,
+      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
       ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
       ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
         x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, bg_color);
-      font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5 * BIG_SCALE,
+      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5 * BIG_SCALE,
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
     }
 
