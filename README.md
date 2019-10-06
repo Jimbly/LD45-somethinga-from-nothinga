@@ -13,6 +13,7 @@ TODO:
     burble, machine noises?
   Art
     Separate fission/fusion/both pipes?
+    Color each source, and blend hues as things mix?
   Funny quotes for each element?
   Title screen?
   Infinite scroll with auto-zoom out matching aspect ratio better?

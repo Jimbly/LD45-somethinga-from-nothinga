@@ -4,6 +4,7 @@ const glov_local_storage = require('./glov/local_storage.js');
 glov_local_storage.storage_prefix = 'LD43';
 
 const assert = require('assert');
+const animation = require('./glov/animation.js');
 const engine = require('./glov/engine.js');
 const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
@@ -12,11 +13,11 @@ const input = require('./glov/input.js');
 const score_system = require('./glov/score.js');
 const glov_sprites = require('./glov/sprites.js');
 //const glov_sprite_animation = require('./glov/sprite_animation.js');
-//const glov_transition = require('./glov/transition.js');
+const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
-const { abs, floor, max, sin } = Math;
+const { abs, floor, max, min, sin } = Math;
 
 const { vec2, vec4 } = require('./glov/vmath.js');
 
@@ -26,6 +27,7 @@ window.Z = window.Z || {};
 Z.BACKGROUND = 0;
 Z.SPRITES = 10;
 Z.PARTICLES = 20;
+Z.TITLES = 200;
 
 const GAME_WIDTH_SIDE = 1000;
 const GAME_WIDTH_CLOSED = 652;
@@ -271,6 +273,7 @@ export function main() {
     this.w = 12;
     this.h = 16;
     this.ever_complete = false;
+    this.last_complete = false;
     this.board = new Array(this.h);
     for (let ii = 0; ii < this.board.length; ++ii) {
       this.board[ii] = new Array(this.w);
@@ -422,6 +425,69 @@ export function main() {
     this.last_best_score = best_score;
   };
 
+  let transition_anim;
+  let transition_up;
+  function endTransition() {
+    transition_anim = null;
+    transition_up = false;
+    glov_transition.queue(glov_transition.IMMEDIATE, glov_transition.fade(1000));
+  }
+  let title_fade;
+  let hint_fade;
+  let click_fade;
+  let style_title = glov_font.style(null, { color: 0xFFFFFFff });
+  let style_title_click = glov_font.style(null, { color: 0x808080ff });
+  function showTransition() {
+    sprites.white.draw({
+      x: camera2d.x0(), y: camera2d.y0(), z: Z.TITLES,
+      w: camera2d.w(), h: camera2d.h(),
+      color: color_black,
+    });
+
+    let z = Z.TITLES + 1;
+    let size = 64;
+    let pad = 8;
+    let level_data = levels[level];
+    let y = 100;
+    font.drawSizedAligned(glov_font.styleAlpha(style_title_click, min(1, title_fade / 0.7)),
+      0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+      `Level ${level+1}/${levels.length}`);
+    y += size + pad;
+    font.drawSizedAligned(glov_font.styleAlpha(style_title, max(0, (title_fade - 0.3)) / 0.7),
+      0, y, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+      level_data.display_name);
+    y += size + pad;
+
+    y += size;
+
+    size /= 2;
+    if (level_data.hint && hint_fade) {
+      y += font.drawSizedWrapped(glov_font.styleAlpha(style_title, hint_fade),
+        100, y, z, game_width - 200, 50, size,
+        level_data.hint);
+
+      y += size;
+
+      if (level === 1) {
+        // first with hint
+        font.drawSizedAligned(glov_font.styleAlpha(style_title_click, click_fade),
+          0, y, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+          '(You can read hints again in the right panel)');
+      }
+    }
+
+    if (click_fade) {
+      font.drawSizedAligned(glov_font.styleAlpha(style_title_click, click_fade),
+        0, game_height - 100, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
+        `(${input.touch_mode ? 'tap' : 'click'} to continue)`);
+    }
+
+    if (input.click()) {
+      ui.playUISound('button_click');
+      endTransition();
+    }
+  }
+
   let state;
   function reset(save_old) {
     if (save_old) {
@@ -434,6 +500,21 @@ export function main() {
     }
     state = new GameState(level);
     state.update();
+    if (!levels[level].did_transition) {
+      levels[level].did_transition = true;
+      transition_anim = animation.create();
+      transition_up = true;
+      glov_transition.queue(glov_transition.IMMEDIATE, glov_transition.fade(100));
+      title_fade = hint_fade = click_fade = 0;
+      // An eslint bug, I guess
+      // eslint-disable-next-line no-unused-vars
+      let t = transition_anim.add(0, 1500, (progress) => (title_fade = progress));
+      if (levels[level].hint) {
+        t = transition_anim.add(t, 1000, (progress) => (hint_fade = progress));
+        t = transition_anim.add(t, 1000, (progress) => progress);
+      }
+      t = transition_anim.add(t, 500, (progress) => (click_fade = progress));
+    }
   }
   reset();
   have_scores = false;
@@ -539,7 +620,6 @@ export function main() {
   }
 
   let did_long_complete;
-  let last_complete;
   function test(dt) {
     const side_visible = !engine.defines.SHIDE;
     if (side_visible) {
@@ -551,6 +631,15 @@ export function main() {
       engine.setGameDims(game_width, game_height);
       camera2d.setAspectFixed(game_width, game_height);
     }
+
+    if (transition_up) {
+      if (transition_anim && !transition_anim.update(dt)) {
+        transition_anim = null;
+      }
+      showTransition();
+      input.eatAllInput();
+    }
+
     const HSPACE = (BOARD_W - 24) / state.w;
     const CELL_H = ui.font_height;
     const EDGE_H = ui.font_height;
@@ -802,6 +891,7 @@ export function main() {
 
     y += ui.font_height * 0.5;
 
+    let did_reset = false;
     if (side_visible) {
       let button_w = 150;
       if (ui.buttonText({
@@ -810,12 +900,12 @@ export function main() {
         colors: complete ? colors_good : null,
       })) {
         ++level;
-        complete = false;
+        did_reset = true;
         reset(true);
       }
       x += button_w + 8;
       if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
-        complete = false;
+        did_reset = true;
         reset();
       }
       y += ui.button_height + 8;
@@ -825,7 +915,7 @@ export function main() {
           x, y, w: button_w, text: 'Previous Level',
         })) {
           --level;
-          complete = false;
+          did_reset = true;
           reset(true);
         }
       }
@@ -860,7 +950,7 @@ export function main() {
         colors: complete ? colors_good : null,
       })) {
         ++level;
-        complete = false;
+        did_reset = true;
         reset(true);
       }
       y += ui.button_height + 8;
@@ -869,7 +959,7 @@ export function main() {
           text: '<-' })
         ) {
           --level;
-          complete = false;
+          did_reset = true;
           reset(true);
         }
       }
@@ -918,28 +1008,30 @@ export function main() {
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
     }
 
-    if (complete) {
-      score_system.setScore(level,
-        { height: state.active_height, fu: state.num_join, fi: state.num_split },
-        () => (have_scores = true)
-      );
-      if (!state.ever_complete) {
-        ui.playUISound('fanfare', 0.5);
-        state.ever_complete = true;
-        ui.modalDialog({
-          title: 'Level Complete!',
-          text: did_long_complete ?
-            '' :
-            'Congratulations, you have completed the level!\n\nYou may try to' +
-            ' improve your score, if possible, or move on to the next level.',
-          buttons: { Ok: null },
-        });
-        did_long_complete = true;
-      } else if (!last_complete) {
-        ui.playUISound('fanfare', 0.5);
+    if (!did_reset) {
+      if (complete) {
+        score_system.setScore(level,
+          { height: state.active_height, fu: state.num_join, fi: state.num_split },
+          () => (have_scores = true)
+        );
+        if (!state.ever_complete) {
+          ui.playUISound('fanfare', 0.5);
+          state.ever_complete = true;
+          ui.modalDialog({
+            title: 'Level Complete!',
+            text: did_long_complete ?
+              '' :
+              'Congratulations, you have completed the level!\n\nYou may try to' +
+              ' improve your score, if possible, or move on to the next level.',
+            buttons: { Ok: null },
+          });
+          did_long_complete = true;
+        } else if (!state.last_complete) {
+          ui.playUISound('fanfare', 0.5);
+        }
       }
+      state.last_complete = complete;
     }
-    last_complete = complete;
   }
 
   function testInit(dt) {
