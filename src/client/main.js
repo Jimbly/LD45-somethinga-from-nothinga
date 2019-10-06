@@ -128,7 +128,7 @@ export function main() {
       name: 'tut2',
       display_name: 'Tutorial 2/4: fission, waste',
       hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output.\n\n' +
-        'Also note, an atom needs a clear path to the bottom to be counted as an output.',
+        'Also note, an element needs a clear path to the bottom to be counted as an output.',
       source: 'As', // 33
       goal: 'HHO', // 10
       max_score: [null, 0, null],
@@ -432,7 +432,8 @@ export function main() {
     transition_up = false;
     glov_transition.queue(glov_transition.IMMEDIATE, glov_transition.fade(1000));
   }
-  let title_fade;
+  let title_fade1;
+  let title_fade2;
   let hint_fade;
   let click_fade;
   let style_title = glov_font.style(null, { color: 0xFFFFFFff });
@@ -449,11 +450,11 @@ export function main() {
     let pad = 8;
     let level_data = levels[level];
     let y = 100;
-    font.drawSizedAligned(glov_font.styleAlpha(style_title_click, min(1, title_fade / 0.7)),
+    font.drawSizedAligned(glov_font.styleAlpha(style_title_click, title_fade1),
       0, y, z, size * 0.75, glov_font.ALIGN.HCENTERFIT, game_width, 0,
       `Level ${level+1}/${levels.length}`);
     y += size + pad;
-    font.drawSizedAligned(glov_font.styleAlpha(style_title, max(0, (title_fade - 0.3)) / 0.7),
+    font.drawSizedAligned(glov_font.styleAlpha(style_title, title_fade2),
       0, y, z, size, glov_font.ALIGN.HCENTERFIT, game_width, 0,
       level_data.display_name);
     y += size + pad;
@@ -505,12 +506,13 @@ export function main() {
       transition_anim = animation.create();
       transition_up = true;
       glov_transition.queue(glov_transition.IMMEDIATE, glov_transition.fade(100));
-      title_fade = hint_fade = click_fade = 0;
+      title_fade1 = title_fade2 = hint_fade = click_fade = 0;
+      transition_anim.add(0, 1100, (progress) => (title_fade1 = progress));
       // An eslint bug, I guess
       // eslint-disable-next-line no-unused-vars
-      let t = transition_anim.add(0, 1500, (progress) => (title_fade = progress));
+      let t = transition_anim.add(400, 1100, (progress) => (title_fade2 = progress));
       if (levels[level].hint) {
-        t = transition_anim.add(t, 1000, (progress) => (hint_fade = progress));
+        t = transition_anim.add(t - 400, 1000, (progress) => (hint_fade = progress));
         t = transition_anim.add(t, 1000, (progress) => progress);
       }
       t = transition_anim.add(t, 500, (progress) => (click_fade = progress));
@@ -979,13 +981,14 @@ export function main() {
     }
 
     if (selected_elem) {
+      const BIG_SCALE = 0.75;
       const PAD = 25;
-      const BIG_W = BOARD_W / 2 - PAD;
+      const BIG_W = BIG_SCALE * (BOARD_W / 2 - PAD);
       let BIG_H = BIG_W * 1.20;
-      let BIG_BORDER = 8;
+      let BIG_BORDER = 8 * BIG_SCALE;
       z = Z.UI + 50;
       if (input.mousePos()[0] < BOARD_W / 2) {
-        x = BOARD_W / 2;
+        x = BOARD_W - PAD - BIG_W;
       } else {
         x = PAD;
       }
@@ -995,16 +998,16 @@ export function main() {
         y = PAD;
       }
 
-      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9,
+      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.2, z, ui.font_height * 9 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][0] : '!!!!');
-      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2,
+      font.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
       ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
       ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
         x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, color_white);
-      font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5,
+      font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5 * BIG_SCALE,
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
     }
 
