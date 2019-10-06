@@ -851,6 +851,7 @@ export function main() {
         x: game_width - 120 - 10, w: 120, y, z, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
       })) {
         sound_manager.music_on = !sound_manager.music_on;
+        state.update();
       }
     } else {
       if (ui.buttonText({
