@@ -8,6 +8,7 @@ const animation = require('./glov/animation.js');
 const engine = require('./glov/engine.js');
 const camera2d = require('./glov/camera2d.js');
 const glov_font = require('./glov/font.js');
+const { hsvToRGB } = require('./glov/hsv.js');
 const input = require('./glov/input.js');
 //const glov_particles = require('./glov/particles.js');
 const score_system = require('./glov/score.js');
@@ -17,7 +18,7 @@ const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
-const { abs, floor, max, sin } = Math;
+const { abs, floor, max, min, sin } = Math;
 
 const { vec2, vec4 } = require('./glov/vmath.js');
 
@@ -278,14 +279,17 @@ export function main() {
     for (let ii = 0; ii < this.board.length; ++ii) {
       this.board[ii] = new Array(this.w);
       for (let jj = 0; jj < this.board[ii].length; ++jj) {
-        this.board[ii][jj] = { v: 0, state: 0, pos: [ii, jj] };
+        this.board[ii][jj] = { v: 0, state: 0, pos: [ii, jj], rgb: vec4(1,1,1,1) };
       }
     }
     let source_elem = stringToElems(level_def.source);
     let base = max(1, 4 - source_elem.length);
     let mult = base + (source_elem.length - 1) * 2 >= this.w ? 1 : 2;
     for (let ii = 0; ii < source_elem.length; ++ii) {
-      this.board[0][base + ii * mult].v = source_elem[ii];
+      let elem = this.board[0][base + ii * mult];
+      elem.v = source_elem[ii];
+      elem.hsv = periodic[source_elem[ii]][2];
+      hsvToRGB(elem.rgb, elem.hsv[0], elem.hsv[1], elem.hsv[2]);
     }
     this.edges = new Array(this.h - 1);
     for (let ii = 0; ii < this.edges.length; ++ii) {
@@ -305,11 +309,35 @@ export function main() {
     }
   }
 
-  GameState.prototype.addTo = function (elem, v) {
+  GameState.prototype.addTo = function (elem, v, hsv) {
     if (elem.v) {
       this.num_join++;
+      let he = elem.hsv[0];
+      let hs = hsv[0];
+      if (max(hs, he) - min(hs, he) > 180) {
+        if (hs > he) {
+          hs -= 360;
+        } else {
+          he -= 360;
+        }
+      }
+      let ht = (he * elem.v + hs * v) / (elem.v + v);
+      if (ht < 0) {
+        ht += 360;
+      }
+      if (!elem.hsv[1]) {
+        ht = hsv[0];
+      } else if (!hsv[1]) {
+        ht = elem.hsv[0];
+      }
+      elem.hsv[0] = ht;
+      elem.hsv[1] = (elem.hsv[1] * elem.v + hsv[1] * v) / (elem.v + v);
+      elem.hsv[2] = (elem.hsv[2] * elem.v + hsv[2] * v) / (elem.v + v);
+    } else {
+      elem.hsv = hsv.slice(0);
     }
     elem.v += v;
+    hsvToRGB(elem.rgb, elem.hsv[0], elem.hsv[1], elem.hsv[2]);
   };
 
   GameState.prototype.update = function () {
@@ -334,6 +362,7 @@ export function main() {
         if (!v || v >= periodic.length) {
           continue;
         }
+        let hsv = row[jj].hsv;
         let p1 = jj;
         let e1 = edges[jj * 2] || 0;
         let p2;
@@ -352,15 +381,15 @@ export function main() {
           this.num_split++;
           let v1 = floor(v / 2);
           let v2 = v - v1;
-          this.addTo(next[p1], v1);
-          this.addTo(next[p2], v2);
+          this.addTo(next[p1], v1, hsv);
+          this.addTo(next[p2], v2, hsv);
           tallest = ii + 1;
         } else if (e1) {
           tallest = ii + 1;
-          this.addTo(next[p1], v);
+          this.addTo(next[p1], v, hsv);
         } else if (e2) {
           tallest = ii + 1;
-          this.addTo(next[p2], v);
+          this.addTo(next[p2], v, hsv);
         }
       }
       if (tallest !== ii + 1) {
@@ -501,7 +530,7 @@ export function main() {
     }
     state = new GameState(level);
     state.update();
-    if (!levels[level].did_transition) {
+    if (!levels[level].did_transition && !DEBUG) {
       levels[level].did_transition = true;
       transition_anim = animation.create();
       transition_up = true;
@@ -736,7 +765,8 @@ export function main() {
         x = x0 + HSPACE / 4;
         for (let jj = 0; jj < erow.length; ++jj) {
           let parent = (ii & 1) ? floor((jj + 1) / 2) : floor(jj / 2);
-          let parent_v = state.board[ii][parent] && state.board[ii][parent].v;
+          let parent_elem = state.board[ii][parent];
+          let parent_v = parent_elem && parent_elem.v;
           if (parent_v && parent_v < periodic.length) {
             let right = Boolean((jj + ii) & 1);
             // let text = erow[jj] ? right ? '\\' : '/' : '-';
@@ -752,7 +782,7 @@ export function main() {
                 rollover: [1,1,1,1],
                 regular: [0.2,0.2,0.2,1],
               },
-              color: erow[jj] ? pico8.colors[12] : pico8.colors[6],
+              color: erow[jj] ? parent_elem.rgb : pico8.colors[6],
               color1: [1,1,1,1],
               // no_bg: true,
             })) {
@@ -986,6 +1016,9 @@ export function main() {
       const BIG_W = BIG_SCALE * (BOARD_W / 2 - PAD);
       let BIG_H = BIG_W * 1.20;
       let BIG_BORDER = 8 * BIG_SCALE;
+      let bg_hsv = periodic[selected_elem][2];
+      let bg_color = vec4(1,1,1, 1);
+      hsvToRGB(bg_color, bg_hsv[0], bg_hsv[1], bg_hsv[2]);
       z = Z.UI + 50;
       if (input.mousePos()[0] < BOARD_W / 2) {
         x = BOARD_W - PAD - BIG_W;
@@ -1006,7 +1039,7 @@ export function main() {
         periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
       ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
       ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
-        x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, color_white);
+        x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, bg_color);
       font.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5 * BIG_SCALE,
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
     }
