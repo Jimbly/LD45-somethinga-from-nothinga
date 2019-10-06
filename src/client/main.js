@@ -38,7 +38,7 @@ const GAME_WIDTH_SIDE = BOARD_W + SIDE_WIDTH_OPEN;
 // let app = exports;
 // Virtual viewport for our game logic
 const GAME_HEIGHT_DEFAULT = 900;
-let last_frame_height = GAME_HEIGHT_DEFAULT;
+let last_frame_height = 205;
 const side_height = 900;
 
 export let sprites = {};
@@ -49,8 +49,8 @@ const color_black = vec4(0, 0, 0, 1);
 export function main() {
   if (!engine.startup({
     do_borders: false,
-    game_width: GAME_WIDTH_SIDE,
-    game_height: GAME_HEIGHT_DEFAULT,
+    game_width: GAME_WIDTH_SIDE, // Just used for modal dialog scaling
+    game_height: GAME_HEIGHT_DEFAULT, // Just used for modal dialog scaling
     pixely: 'off',
     viewport_postprocess: false,
     sound_manager: require('./glov/sound_manager.js').create({
@@ -130,7 +130,7 @@ export function main() {
     return ret;
   }
 
-  let level = DEBUG ? 3 : 0;
+  let level = 0;
   let levels = [
     {
       name: 'tut1',
@@ -235,7 +235,7 @@ export function main() {
     },
     {
       name: '11fin',
-      display_name: 'The End',
+      display_name: 'The End?',
       hint: 'Thanks for playing!',
       source: 'NoThInGe',
       goal: 'FIN',
@@ -541,10 +541,10 @@ export function main() {
     }
   }
 
-  let last_goal_y;
+  let last_goal_y = 0;
   let state;
   function reset(save_old) {
-    last_goal_y = 0;
+    //last_goal_y = 0;
     if (save_old) {
       levels[state.level].saved = state;
       if (levels[level].saved) {
