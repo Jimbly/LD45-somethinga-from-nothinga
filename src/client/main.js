@@ -678,6 +678,14 @@ export function main() {
     }
   }
 
+  function drawHollowRect(x1, y1, x2, y2, z, border, color_border, color_inner) {
+    ui.drawRect(x1, y1, x2, y1 + border, z, color_border);
+    ui.drawRect(x1, y2 - border, x2, y2, z, color_border);
+    ui.drawRect(x1, y1, x1 + border, y2, z, color_border);
+    ui.drawRect(x2 - border, y1, x2, y2, z, color_border);
+    ui.drawRect(x1 + border, y1 + border, x2 - border, y2 - border, z + 1, color_inner);
+  }
+
   let did_long_complete;
   function test(dt) {
     if (transition_up) {
@@ -729,9 +737,8 @@ export function main() {
     function elementFull(v, style, color) {
       font_periodic.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
         glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '!!!!');
-      ui.drawRect(x - RECT_HW, y, x + RECT_HW, y + CELL_H * 2, z - 2, color || color_white);
-      ui.drawRect(x - RECT_HW + RECT_BORDER, y + RECT_BORDER,
-        x + RECT_HW - RECT_BORDER, y + CELL_H * 2 - RECT_BORDER, z - 1, color_black);
+      drawHollowRect(x - RECT_HW, y, x + RECT_HW, y + CELL_H * 2, z - 2, RECT_BORDER,
+        color || color_white, color_black);
       font_periodic.drawSizedAligned(style, x - RECT_HW + RECT_BORDER, y + CELL_H * 1.25, z, ui.font_height * 0.75,
         glov_font.ALIGN.HRIGHT, RECT_HW * 2 - RECT_BORDER * 2, 0, `${v}`);
       if (input.mouseOver({
@@ -745,7 +752,7 @@ export function main() {
       }
     }
     elementFull.height = CELL_H * 2;
-    const SMALL_HW = HSPACE * 0.45;
+    const SMALL_HW = HSPACE * 0.47;
     function elementSmall(v, style, color) {
       let bg_style = glov_font.styleAlpha(style, 0.5);
       bg_style = glov_font.style(bg_style, {
@@ -755,9 +762,7 @@ export function main() {
       font_periodic.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
         glov_font.ALIGN.HCENTER,
         SMALL_HW * 2 - RECT_BORDER * 2, 0, `${periodic[v] ? periodic[v][0] : '!!!!'}`);
-      ui.drawRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, color || color_white);
-      ui.drawRect(x - SMALL_HW + RECT_BORDER, y + RECT_BORDER,
-        x + SMALL_HW - RECT_BORDER, y + CELL_H - RECT_BORDER, z - 1, color_black);
+      drawHollowRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, RECT_BORDER, color || color_white, color_black);
       let fg_style = glov_font.style(style, {
         outline_width: 1,
         outline_color: 0x00000080,
@@ -766,14 +771,12 @@ export function main() {
         glov_font.ALIGN.HRIGHT | glov_font.ALIGN.VBOTTOM, SMALL_HW * 2 - RECT_BORDER * 2, CELL_H, String(v));
     }
     elementSmall.height = CELL_H;
-    function numberSmall(v, style, color) {
-      ui.drawRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, color || color_white);
-      ui.drawRect(x - SMALL_HW + RECT_BORDER, y + RECT_BORDER,
-        x + SMALL_HW - RECT_BORDER, y + CELL_H - RECT_BORDER, z - 1, color_black);
-      font_periodic.drawSizedAligned(style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height,
-        glov_font.ALIGN.HCENTER | glov_font.ALIGN.VCENTER, SMALL_HW * 2 - RECT_BORDER * 2, CELL_H, String(v));
-    }
-    numberSmall.height = CELL_H;
+    // function numberSmall(v, style, color) {
+    //   drawHollowRect(x - SMALL_HW, y, x + SMALL_HW, y + CELL_H, z - 2, RECT_BORDER, color||color_white,color_black);
+    //   font_periodic.drawSizedAligned(style, x - SMALL_HW + RECT_BORDER, y, z + 0.1, ui.font_height,
+    //     glov_font.ALIGN.HCENTER | glov_font.ALIGN.VCENTER, SMALL_HW * 2 - RECT_BORDER * 2, CELL_H, String(v));
+    // }
+    // numberSmall.height = CELL_H;
     for (let ii = 0; ii <= state.active_height; ++ii) {
       let row = state.board[ii];
       x = x0 + (!(ii & 1) ? HSPACE / 2 : 0);
@@ -1122,9 +1125,7 @@ export function main() {
       font_periodic.drawSizedAligned(score_style, x + BIG_BORDER*2, y + BIG_H * 0.75, z, ui.font_height * 2 * BIG_SCALE,
         glov_font.ALIGN.HCENTERFIT, BIG_W - BIG_BORDER * 4, 0,
         periodic[selected_elem] ? periodic[selected_elem][1] : 'Danger!');
-      ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
-      ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
-        x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, bg_color);
+      drawHollowRect(x, y, x + BIG_W, y + BIG_H, z - 2, BIG_BORDER, color_black, bg_color);
       font_periodic.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z,
         ui.font_height * 3.5 * BIG_SCALE,
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
