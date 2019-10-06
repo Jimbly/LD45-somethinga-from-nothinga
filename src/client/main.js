@@ -84,7 +84,7 @@ export function main() {
   let font_periodic = glov_font.create(require('./img/font/oswald56.json'), 'font/oswald56');
   let font_shadows = glov_font.create(require('./img/font/shadows32.json'), 'font/shadows32');
 
-  gl.clearColor(0.1, 0.1, 0.1, 1);
+  gl.clearColor(1,1,1, 1);
 
   const font = engine.font;
 
@@ -132,6 +132,12 @@ export function main() {
 
   let level = 0;
   let levels = [
+    {
+      name: '10ti',
+      display_name: 'SOMtHINGa from NoThINGa',
+      source: 'SOMtHINGa', // 225
+      goal: 'NoThINGa', // 283
+    },
     {
       name: 'tut1',
       display_name: 'Tutorial 1/4: fusion',
@@ -257,7 +263,7 @@ export function main() {
     let goal = 0;
     stringToElems(levels[ii].goal).filter((a) => (goal += a));
     // console.log(levels[ii].source, source, levels[ii].goal, goal);
-    assert(source >= goal);
+    // assert(source >= goal);
   }
 
   function encodeScore(score) {
@@ -286,7 +292,7 @@ export function main() {
     this.last_best_score = -1;
     this.level = level;
     let level_def = levels[level];
-    this.w = 12;
+    this.w = 8;
     this.h = 32;
     this.ever_complete = false;
     this.last_complete = false;
@@ -299,8 +305,8 @@ export function main() {
     }
     let source_elem = stringToElems(level_def.source);
     let mult = 2 + (source_elem.length - 1) * 2 >= this.w ? 1 : 2;
-    let padding = this.w - ((source_elem.length - 1) * mult + 1);
-    let base = floor(padding / 2);
+    let padding = 1;
+    let base = 0;
     for (let ii = 0; ii < source_elem.length; ++ii) {
       let elem = this.board[0][base + ii * mult];
       elem.v = source_elem[ii];
@@ -705,7 +711,7 @@ export function main() {
     let side_width_engine = engine.width * side_percentage;
     let board_avail_w = engine.width - side_width_engine;
     let board_avail_h = engine.height;
-    let board_need_w = BOARD_W;
+    let board_need_w = BOARD_W - 100;
     let board_need_h = last_frame_height;
     if (board_avail_w / board_avail_h > board_need_w / board_need_h) {
       // need to be skinny
@@ -722,8 +728,8 @@ export function main() {
       camera2d.setAspectFixed(game_width, game_height);
     }
 
-    const HSPACE = (BOARD_W - 24) / state.w;
-    const CELL_H = ui.font_height;
+    const HSPACE = (BOARD_W - 24) / 12;
+    const CELL_H = ui.font_height * 1.25;
     const EDGE_H = ui.font_height;
     // const BUTTON_W = (HSPACE - 4) / 2;
     const BUTTON_IMG_W = HSPACE / 2;
@@ -734,12 +740,20 @@ export function main() {
     let y = 10;
     let z = Z.UI;
     let selected_elem = 0;
+
+    font_shadows.drawSizedAligned(score_style,
+      x0 + 200, y + 80, z + 10, ui.font_height, 0, 0, 0,
+      'from');
+
     function elementFull(v, style, color) {
-      font_periodic.drawSizedAligned(style, x, y + CELL_H * 0.125, z, ui.font_height * 1.25,
+      font_periodic.drawSizedAligned(score_style, x, y + CELL_H * 0.1, z, ui.font_height * 2,
         glov_font.ALIGN.HCENTER, 0, 0, periodic[v] ? periodic[v][0] : '!!!!');
+      let bg_hsv = periodic[v][2];
+      let bg_color = vec4(1,1,1, 1);
+      hsvToRGB(bg_color, bg_hsv[0], bg_hsv[1], bg_hsv[2]);
       drawHollowRect(x - RECT_HW, y, x + RECT_HW, y + CELL_H * 2, z - 2, RECT_BORDER,
-        color || color_white, color_black);
-      font_periodic.drawSizedAligned(style, x - RECT_HW + RECT_BORDER, y + CELL_H * 1.25, z, ui.font_height * 0.75,
+        color_black, bg_color);
+      font_periodic.drawSizedAligned(score_style, x - RECT_HW + RECT_BORDER - 1, y + CELL_H * 1.4, z, ui.font_height * 0.75,
         glov_font.ALIGN.HRIGHT, RECT_HW * 2 - RECT_BORDER * 2, 0, `${v}`);
       if (input.mouseOver({
         x: x - RECT_HW,
@@ -799,7 +813,7 @@ export function main() {
             mode(v, style_intermediate, color_intermediate);
           }
         }
-        x += HSPACE;
+        x += HSPACE + 4;
       }
       y += mode.height;
       let erow = state.edges[ii];
@@ -860,11 +874,11 @@ export function main() {
       last_goal_y += delta;
       goal_y = last_goal_y;
     }
-    y = goal_y;
+    y = goal_y - 40;
     x = 30;
     font_periodic.drawSizedAligned(null, x, y, z, ui.font_height,
       glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
-    x += HSPACE + 10;
+    x += HSPACE + 120;
     let complete = true;
     for (let ii = 0; ii < state.goal.length; ++ii) {
       let v = state.goal[ii];
@@ -875,7 +889,7 @@ export function main() {
       let color = gs ? color_goal_good : color_goal_bad;
       let style = gs ? style_goal_good : style_goal_bad;
       elementFull(v, style, color);
-      x += HSPACE + ((state.goal.length > 9) ? 4 : 10);
+      x += HSPACE + 4;
     }
     y += elementFull.height + 10;
 
@@ -1025,7 +1039,7 @@ export function main() {
         reset(true);
       }
       x += button_w + 8;
-      if (ui.buttonText({ x, y, w: button_w, text: 'Reset' })) {
+      if (ui.buttonText({ x, y, w: button_w, text: 'Reset Level' })) {
         did_reset = true;
         reset();
       }

@@ -565,6 +565,7 @@ export function buttonText(param) {
 }
 
 export function buttonImage(param) {
+  return;
   // required params
   assert(typeof param.x === 'number');
   assert(typeof param.y === 'number');
