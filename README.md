@@ -8,9 +8,7 @@ LD45 Entry by Jimbly - "SOMtHINGa from NoThINGa"
 Start with: `npm start` (after running `npm i` once)
 
 TODO:
-  High scores
-  Display notification upon completion of level
-  Title screen
+  Title screen?
   Save state of each level so you can freely go back and forth
   Infinite scroll with auto-zoom out matching aspect ratio better?
     Even if not infinite scroll, use whole width and zoom in when short

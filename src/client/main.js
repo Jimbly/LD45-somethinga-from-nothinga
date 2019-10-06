@@ -255,6 +255,7 @@ export function main() {
   function GameState(level_def) {
     this.w = 12;
     this.h = 16;
+    this.ever_complete = false;
     this.board = new Array(this.h);
     for (let ii = 0; ii < this.board.length; ++ii) {
       this.board[ii] = new Array(this.w);
@@ -503,6 +504,7 @@ export function main() {
     }
   }
 
+  let last_complete;
   function test(dt) {
     const side_visible = !engine.defines.SHIDE;
     if (side_visible) {
@@ -800,6 +802,7 @@ export function main() {
       if (level_data.hint) {
         font.drawSizedWrapped(hint_style, x, y, z, game_width - x - 5,
           20, ui.font_height * 0.75, level_data.hint);
+        level_data.did_hint = true;
       }
 
       y += ui.font_height * 4; // regardless of hint height
@@ -809,9 +812,11 @@ export function main() {
       }
 
     } else {
-      if (ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
-        text: '->', disabled: level === levels.length - 1 })
-      ) {
+      if (ui.buttonText({
+        x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        text: '->', disabled: level === levels.length - 1,
+        colors: complete ? colors_good : null,
+      })) {
         ++level;
         complete = false;
         reset();
@@ -827,12 +832,14 @@ export function main() {
         }
       }
       y += ui.button_height + 8;
-      if (level_data.hint && ui.buttonText({ x: game_width - ui.button_height - 10, y, w: ui.button_height,
-        text: '!' })
-      ) {
+      if (level_data.hint && ui.buttonText({
+        colors: !level_data.did_hint ? colors_good : null,
+        x: game_width - ui.button_height - 10, y, w: ui.button_height,
+        text: '!'
+      })) {
+        level_data.did_hint = true;
         ui.modalDialog({
-          title: 'HINT',
-          text: level_data.hint,
+          text: `\n${level_data.hint}`,
           buttons: { Ok: null },
         });
       }
@@ -874,7 +881,20 @@ export function main() {
         { height: state.active_height, fu: state.num_join, fi: state.num_split },
         () => (have_scores = true)
       );
+      if (!state.ever_complete) {
+        // Play sound.
+        state.ever_complete = true;
+        ui.modalDialog({
+          title: 'Level Complete!',
+          text: 'Congratulations, you have completed the level!\n\nYou may try to' +
+            ' improve your score, if possible, or move on to the next level.',
+          buttons: { Ok: null },
+        });
+      } else if (!last_complete) {
+        // Play sound?
+      }
     }
+    last_complete = complete;
   }
 
   function testInit(dt) {
