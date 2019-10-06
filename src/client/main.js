@@ -46,7 +46,7 @@ export function main() {
     game_height,
     pixely: 'off',
     viewport_postprocess: false,
-    sound_manager: require('./glov/sound_manager.js').create(),
+    sound_manager: require('./glov/sound_manager.js').create({ auto_mp3s: true }),
     show_fps: false,
     antialias: true,
     ui_sprites: {
@@ -54,6 +54,13 @@ export function main() {
       button_rollover: ['ui.local/button_rollover', [2,60,2], [64]],
       button_down: ['ui.local/button_down', [2,60,2], [64]],
       button_disabled: ['ui.local/button_disabled', [2,60,2], [64]],
+    },
+    ui_sounds: {
+      button_click: [
+        'click1', 'click2', 'click3', 'click4', 'click5', 'click6', 'click7', 'click8', 'click9', 'click10'
+      ],
+      fanfare: 'fanfare',
+      fanfare_mini: ['fanfare_mini1', 'fanfare_mini2'],
     },
   })) {
     return;
@@ -72,7 +79,7 @@ export function main() {
 
   function initGraphics() {
 
-    sound_manager.loadSound('test');
+    sound_manager.loadSound('rollover');
 
     sprites.white = createSprite({ url: 'white' });
     sprites.pipes = createSprite({ name: 'pipes', layers: 2, ws: [128, 128, 128, 128], hs: [256] });
@@ -115,7 +122,8 @@ export function main() {
     {
       name: 'tut2',
       display_name: 'Tutorial 2/4: fission, waste',
-      hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output',
+      hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output.\n\n' +
+        'Also note, an atom needs a clear path to the bottom to be counted as an output.',
       source: 'As', // 33
       goal: 'HHO', // 10
       max_score: [null, 0, null],
@@ -198,7 +206,7 @@ export function main() {
     //   source: 'LuDbUMdArRe',
     //   goal: 'GaMdEuV',
     // },
-    {
+    { // 11/16/22
       name: '10ti',
       display_name: 'SOMtHINGa from NoThINGa',
       hint: '"Nothing" (noun): something that does not exist',
@@ -254,6 +262,7 @@ export function main() {
   score_system.init(encodeScore, parseScore, levels, 'LD45');
 
   function GameState() {
+    this.last_best_score = -1;
     this.level = level;
     let level_def = levels[level];
     this.w = 12;
@@ -397,6 +406,17 @@ export function main() {
     }
     solve(0, 0, 0);
     this.goal_state = best;
+    if (best_score >= this.goal.length / 2) {
+      sound_manager.playMusic('bgm', 1, true);
+    } else if (best_score) {
+      sound_manager.playMusic('bgm_light', 1, true);
+    } else {
+      sound_manager.playMusic('bgm_superlight', 1, true);
+    }
+    if (this.last_best_score !== -1 && best_score > this.last_best_score) {
+      ui.playUISound('fanfare_mini');
+    }
+    this.last_best_score = best_score;
   };
 
   let state;
@@ -515,6 +535,7 @@ export function main() {
     }
   }
 
+  let did_long_complete;
   let last_complete;
   function test(dt) {
     const side_visible = !engine.defines.SHIDE;
@@ -637,7 +658,7 @@ export function main() {
                 rollover: [1,1,1,1],
                 regular: [0.2,0.2,0.2,1],
               },
-              color: pico8.colors[12],
+              color: erow[jj] ? pico8.colors[12] : pico8.colors[6],
               color1: [1,1,1,1],
               // no_bg: true,
             })) {
@@ -770,10 +791,10 @@ export function main() {
     } else if (!complete) {
       total_style = score_style_bad_static;
     }
-    font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
-      `${side_visible ? 'Total: ' : ''}${complete ?
-        `${state.active_height}/${state.num_join}/${state.num_split}` :
-        side_visible ? over_limits ? 'Over limits' : 'Goal not met' : over_limits ? 'Limt' : 'Inc'}`);
+    if (!complete) {
+      font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, game_width - x - 2, 0,
+        side_visible ? over_limits ? 'Over limits' : 'Goal not met' : over_limits ? 'Limt' : 'Inc');
+    }
     y += ui.font_height;
 
     y += ui.font_height * 0.5;
@@ -822,6 +843,12 @@ export function main() {
         showHighScores(x, y);
       }
 
+      y = game_height - ui.button_height - 10;
+      if (ui.buttonText({
+        x: game_width - 120 - 10, w: 120, y, z, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
+      })) {
+        sound_manager.music_on = !sound_manager.music_on;
+      }
     } else {
       if (ui.buttonText({
         x: game_width - ui.button_height - 10, y, w: ui.button_height,
@@ -893,16 +920,19 @@ export function main() {
         () => (have_scores = true)
       );
       if (!state.ever_complete) {
-        // Play sound.
+        ui.playUISound('fanfare', 0.5);
         state.ever_complete = true;
         ui.modalDialog({
           title: 'Level Complete!',
-          text: 'Congratulations, you have completed the level!\n\nYou may try to' +
+          text: did_long_complete ?
+            '' :
+            'Congratulations, you have completed the level!\n\nYou may try to' +
             ' improve your score, if possible, or move on to the next level.',
           buttons: { Ok: null },
         });
+        did_long_complete = true;
       } else if (!last_complete) {
-        // Play sound?
+        ui.playUISound('fanfare', 0.5);
       }
     }
     last_complete = complete;
