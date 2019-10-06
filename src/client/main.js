@@ -851,7 +851,8 @@ export function main() {
     }
     y = goal_y;
     x = 30;
-    font_periodic.drawSizedAligned(null, x, y, z, ui.font_height, glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
+    font_periodic.drawSizedAligned(null, x, y, z, ui.font_height,
+      glov_font.ALIGN.HVCENTER, 0, elementFull.height, 'Goal:');
     x += HSPACE + 10;
     let complete = true;
     for (let ii = 0; ii < state.goal.length; ++ii) {
@@ -912,7 +913,8 @@ export function main() {
       color: 0x202020ff,
     });
 
-    font_periodic.drawSizedAligned(side_visible ? glov_font.styleColored(score_style, pico8.font_colors[5]) : score_style,
+    font_periodic.drawSizedAligned(
+      side_visible ? glov_font.styleColored(score_style, pico8.font_colors[5]) : score_style,
       x, y, z,
       ui.font_height * 0.8,
       side_visible ? glov_font.ALIGN.HCENTER : glov_font.ALIGN.HFIT,
@@ -1095,7 +1097,8 @@ export function main() {
       ui.drawRect(x, y, x + BIG_W, y + BIG_H, z - 2, color_black);
       ui.drawRect(x + BIG_BORDER, y + BIG_BORDER,
         x + BIG_W - BIG_BORDER, y + BIG_H - BIG_BORDER, z - 1, bg_color);
-      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z, ui.font_height * 3.5 * BIG_SCALE,
+      font_periodic.drawSizedAligned(score_style, x + BIG_BORDER + 8, y + BIG_BORDER + 8, z,
+        ui.font_height * 3.5 * BIG_SCALE,
         glov_font.ALIGN.HLEFT, 0, 0, `${selected_elem}`);
     }
 
