@@ -20,7 +20,7 @@ const { abs, floor, max, sin } = Math;
 
 const { vec2, vec4 } = require('./glov/vmath.js');
 
-const DEBUG = 1;
+const DEBUG = window.location.host.indexOf('localhost') !== -1;
 
 window.Z = window.Z || {};
 Z.BACKGROUND = 0;
@@ -46,7 +46,10 @@ export function main() {
     game_height,
     pixely: 'off',
     viewport_postprocess: false,
-    sound_manager: require('./glov/sound_manager.js').create({ auto_mp3s: true }),
+    sound_manager: require('./glov/sound_manager.js').create({
+      auto_mp3s: true,
+      music_on: !DEBUG,
+    }),
     show_fps: false,
     antialias: true,
     ui_sprites: {
