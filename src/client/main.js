@@ -79,7 +79,7 @@ export function main() {
   })) {
     return;
   }
-  let font_periodic = glov_font.create(require('./img/font/oswald32.json'), 'font/oswald32');
+  let font_periodic = glov_font.create(require('./img/font/oswald56.json'), 'font/oswald56');
   let font_shadows = glov_font.create(require('./img/font/shadows32.json'), 'font/shadows32');
 
   gl.clearColor(0.1, 0.1, 0.1, 1);
@@ -547,7 +547,7 @@ export function main() {
     }
     state = new GameState(level);
     state.update();
-    if (!levels[level].did_transition) { //  && !DEBUG) {
+    if (!levels[level].did_transition && !DEBUG) {
       levels[level].did_transition = true;
       transition_anim = animation.create();
       transition_up = true;
@@ -738,7 +738,7 @@ export function main() {
     function elementSmall(v, style, color) {
       let bg_style = glov_font.styleAlpha(style, 0.5);
       bg_style = glov_font.style(bg_style, {
-        outline_width: 1.5,
+        outline_width: 1.0,
         outline_color: bg_style.color
       });
       font_periodic.drawSizedAligned(bg_style, x - SMALL_HW + RECT_BORDER - 4, y, z, ui.font_height,
