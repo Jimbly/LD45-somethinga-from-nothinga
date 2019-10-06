@@ -42,13 +42,14 @@ export function formatName(score) {
 
 function fetchJSON(param) {
   assert(param.url);
-  assert(param.success);
   let xhr = new XMLHttpRequest();
   xhr.open('GET', param.url, true);
   xhr.responseType = 'json';
-  xhr.onload = () => {
-    param.success(xhr.response);
-  };
+  if (param.success) {
+    xhr.onload = () => {
+      param.success(xhr.response);
+    };
+  }
   if (param.error) {
     xhr.onerror = param.error;
   }

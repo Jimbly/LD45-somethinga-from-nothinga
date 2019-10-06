@@ -276,7 +276,6 @@ export function main() {
     };
   }
 
-  let have_scores = false;
   score_system.init(encodeScore, parseScore, levels, 'LD45');
 
   function GameState() {
@@ -295,8 +294,9 @@ export function main() {
       }
     }
     let source_elem = stringToElems(level_def.source);
-    let base = max(1, 4 - source_elem.length);
-    let mult = base + (source_elem.length - 1) * 2 >= this.w ? 1 : 2;
+    let mult = 2 + (source_elem.length - 1) * 2 >= this.w ? 1 : 2;
+    let padding = this.w - ((source_elem.length - 1) * mult + 1);
+    let base = floor(padding / 2);
     for (let ii = 0; ii < source_elem.length; ++ii) {
       let elem = this.board[0][base + ii * mult];
       elem.v = source_elem[ii];
@@ -565,8 +565,7 @@ export function main() {
     }
   }
   reset();
-  have_scores = false;
-  score_system.updateHighScores(() => (have_scores = true));
+  score_system.updateHighScores();
 
   let style_goal_good = glov_font.styleColored(null, pico8.font_colors[11]);
   let color_goal_good = pico8.colors[11];
@@ -1076,7 +1075,7 @@ export function main() {
       let bg_color = vec4(1,1,1, 1);
       hsvToRGB(bg_color, bg_hsv[0], bg_hsv[1], bg_hsv[2]);
       z = Z.UI + 50;
-      if (input.mousePos()[0] < camera2d.x0() + (x0 - camera2d.x0()) / 2) {
+      if (input.mousePos()[0] < camera2d.x0() + (x0 - camera2d.x0()) * 3 / 4) {
         x = camera2d.x1() - side_width - PAD - BIG_W;
       } else {
         x = camera2d.x0() + PAD;
@@ -1103,8 +1102,7 @@ export function main() {
     if (!did_reset) {
       if (complete) {
         score_system.setScore(level,
-          { height: state.active_height, fu: state.num_join, fi: state.num_split },
-          () => (have_scores = true)
+          { height: state.active_height, fu: state.num_join, fi: state.num_split }
         );
         if (!state.ever_complete) {
           ui.playUISound('fanfare', 0.2);
