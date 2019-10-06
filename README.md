@@ -16,3 +16,4 @@ TODO:
   Funny quotes for each element?
     View periodic table minigame that shows all discovered elements?
   Title screen?
+    At least splash image for sharing and LD posting
