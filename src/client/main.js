@@ -132,7 +132,7 @@ export function main() {
     return ret;
   }
 
-  let level = engine.defines.BONUS ? 14 : DEBUG ? 0 : 0;
+  let level = engine.defines.BONUS ? 14 : DEBUG ? 14 : 0;
   let levels = [
     {
       name: 'tut1',
@@ -246,7 +246,7 @@ export function main() {
     {
       name: 'bonus',
       display_name: 'Bonus Level: Worst Case Scenario',
-      hint: 'Hint: 513 - 456 = 57\n\nI\'m not completely sure this level is possible, but my program told me' +
+      hint: 'Hint: 513 - 456 = 57\n\nMy program told me' +
         ' that these two particular words were among the top 10 words in the English language ordered by atomic' +
         ' weight so I couldn\'t resist.',
       source: 'SUPErFlUOUS', // 513
