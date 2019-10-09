@@ -1096,7 +1096,7 @@ export function main() {
 
       y = side_height - ui.button_height - 10;
       if (ui.buttonText({
-        x: x1 - 120 - 10, w: 120, y, z, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
+        x: x1 - 120 - 10, w: 120, y, z: Z.SCORES + 10, text: sound_manager.music_on ? 'Music: ON' : 'Music: Off'
       })) {
         sound_manager.music_on = !sound_manager.music_on;
         state.update();
