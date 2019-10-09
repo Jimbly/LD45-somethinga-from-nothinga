@@ -18,6 +18,7 @@ const glov_transition = require('./glov/transition.js');
 const periodic = require('./periodic.js');
 const pico8 = require('./glov/pico8.js');
 const ui = require('./glov/ui.js');
+const { easeOut } = require('../common/util.js');
 const { abs, floor, max, min, sin } = Math;
 
 const { vec2, vec4, v4copy } = require('./glov/vmath.js');
@@ -29,6 +30,7 @@ Z.BACKGROUND = 0;
 Z.SPRITES = 10;
 Z.PARTICLES = 20;
 Z.TITLES = 200;
+Z.SCORES = 150;
 
 const SIDE_WIDTH_OPEN = 400;
 const SIDE_WIDTH_CLOSED = 52;
@@ -130,7 +132,7 @@ export function main() {
     return ret;
   }
 
-  let level = DEBUG ? 8 : 0;
+  let level = engine.defines.BONUS ? 14 : DEBUG ? 0 : 0;
   let levels = [
     {
       name: 'tut1',
@@ -143,7 +145,7 @@ export function main() {
       name: 'tut2',
       display_name: 'Tutorial 2/4: fission, waste',
       hint: 'Hint: Sometimes, not all of the input needs to be used to get the desired output.\n\n' +
-        'Also note, an element needs a clear path to the bottom to be counted as an output.',
+        'Also note, outputs need to be provided in order.',
       source: 'As', // 33
       goal: 'HHO', // 10
       max_score: [null, 0, null],
@@ -159,7 +161,7 @@ export function main() {
       name: 'tut3',
       display_name: 'Tutorial 3/4: fission, parity',
       hint: 'Hint: When dividing an odd element the larger element alternates flowing right or left at each row.\n\n' +
-        'Also note, outputs need to be provided in order.',
+        'Also note, an element needs a clear path to the bottom to be counted as an output.',
       source: 'Li', // 3
       goal: 'HeH', // 3
       max_score: [null,0,1],
@@ -541,8 +543,22 @@ export function main() {
     }
   }
 
+  function hasCompleted(level_idx) {
+    if (levels[level_idx].saved && levels[level_idx].saved.ever_complete) {
+      return true;
+    }
+    if (score_system.getScore(level_idx)) {
+      return true;
+    }
+    return false;
+  }
+
+
   let last_goal_y = 0;
   let state;
+  let hide_scores;
+  let show_all_scores = false;
+  let bonus_was_available;
   function reset(save_old) {
     //last_goal_y = 0;
     if (save_old) {
@@ -550,12 +566,13 @@ export function main() {
       if (levels[level].saved) {
         state = levels[level].saved;
         state.update();
+        hide_scores = false;
         return;
       }
     }
     state = new GameState(level);
     state.update();
-    if (!levels[level].did_transition && !DEBUG) {
+    if (!levels[level].did_transition && !hasCompleted(level)) { // && !DEBUG) {
       levels[level].did_transition = true;
       transition_anim = animation.create();
       transition_up = true;
@@ -570,6 +587,9 @@ export function main() {
         t = transition_anim.add(t, 1000, (progress) => progress);
       }
       t = transition_anim.add(t, 500, (progress) => (click_fade = max(click_fade, progress)));
+      hide_scores = !show_all_scores;
+    } else {
+      hide_scores = false;
     }
   }
   reset();
@@ -594,8 +614,15 @@ export function main() {
   let score_style_def = glov_font.styleColored(null, 0x171717ff);
 
   let scores_edit_box;
+  const FADE_SCORES_TIME = 2500;
+  let fade_non_scores = 0;
   function showHighScores(x, y) {
-    let z = Z.UI + 10;
+    let z = Z.SCORES;
+    fade_non_scores -= engine.this_frame_time;
+    if (fade_non_scores > 0) {
+      ui.drawRect(camera2d.x0(), camera2d.y0(), camera2d.x1(), camera2d.y1(), z-2,
+        [0, 0, 0, easeOut(fade_non_scores / FADE_SCORES_TIME, 2)]);
+    }
     let size = 16;
     let width = camera2d.x1() - x - 5;
     font_periodic.drawSizedAligned(score_style, x, y, z, size * 2, glov_font.ALIGN.HCENTERFIT, width, 0,
@@ -983,7 +1010,9 @@ export function main() {
     } else if (!complete) {
       total_style = score_style_bad_static;
     }
-    if (!complete) {
+    if (complete) {
+      hide_scores = false;
+    } else {
       font.drawSizedAligned(total_style, x, y, z, ui.font_height, glov_font.ALIGN.HFIT, x1 - x - 2, 0,
         side_visible ? over_limits ? 'Over limits' : 'Goal not met' : over_limits ? 'Limt' : 'Inc');
     }
@@ -995,18 +1024,18 @@ export function main() {
     let did_reset = false;
     let next_ok = (complete || state.ever_complete) || score_system.getScore(level);
     let bonus_available = true;
-    for (let ii = 0; ii < levels.length - 1; ++ii) {
-      if (levels[ii].saved && levels[ii].saved.ever_complete) {
-        continue;
+
+    if (!engine.defines.BONUS) {
+      for (let ii = 0; ii < levels.length - 1; ++ii) {
+        if (hasCompleted(ii)) {
+          continue;
+        }
+        if (ii === level && complete) {
+          continue;
+        }
+        bonus_available = false;
+        break;
       }
-      if (score_system.getScore(ii)) {
-        continue;
-      }
-      if (ii === level && complete) {
-        continue;
-      }
-      bonus_available = false;
-      break;
     }
     let next_disabled = bonus_available ? level === levels.length - 1 : level === levels.length - 2;
     if (side_visible) {
@@ -1020,6 +1049,9 @@ export function main() {
         disabled: next_disabled,
         colors: next_ok ? colors_good : null,
       })) {
+        if (!next_ok) {
+          show_all_scores = true;
+        }
         ++level;
         did_reset = true;
         reset(true);
@@ -1053,7 +1085,14 @@ export function main() {
 
       y += ui.font_height * 5; // regardless of hint height
 
-      showHighScores(x, y);
+      if (!hide_scores || engine.defines.COMPO) {
+        sprites.game_bg.draw({
+          x, y, z: Z.SCORES - 1,
+          w: side_width, h: camera2d.y1() - y,
+          color: pico8.colors[7]
+        });
+        showHighScores(x, y);
+      }
 
       y = side_height - ui.button_height - 10;
       if (ui.buttonText({
@@ -1139,15 +1178,22 @@ export function main() {
         if (!state.ever_complete) {
           ui.playUISound('fanfare', 0.2);
           state.ever_complete = true;
+          let is_first_popup = !did_long_complete;
           ui.modalDialog({
             title: 'Level Complete!',
-            text: bonus_available ?
+            text: bonus_available && !bonus_was_available ?
               'Bonus level unlocked!' :
-              did_long_complete ?
-                '' :
+              is_first_popup ?
                 'Congratulations, you have completed the level!\n\nYou may try to' +
-                ' improve your score, if possible, or move on to the next level.',
-            buttons: { Ok: null },
+                ' improve your score, if possible, or move on to the next level.' :
+                '',
+            buttons: {
+              Ok: function () {
+                if (!engine.defines.COMPO) {
+                  fade_non_scores = is_first_popup ? FADE_SCORES_TIME : 500;
+                }
+              }
+            },
             click_anywhere: true,
           });
           did_long_complete = true;
@@ -1156,6 +1202,7 @@ export function main() {
         }
       }
       state.last_complete = complete;
+      bonus_was_available = bonus_available;
     }
   }
 
